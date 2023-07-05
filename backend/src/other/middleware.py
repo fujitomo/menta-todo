@@ -15,18 +15,6 @@ from pydantic import BaseModel
 from starlette.middleware.base import BaseHTTPMiddleware
 
 
-class TokenType(Enum):
-    ACCESS = "access_token"
-    TMP = "tmp_token"
-    REFRESH = "refresh_token"
-
-
-class TokenPayload(BaseModel):
-    user_id: str
-    exp: int
-    type: str
-
-
 class AccessHandlingMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request,
                        call_next,
