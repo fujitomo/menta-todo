@@ -1,0 +1,53 @@
+version: "3.8"
+
+services:
+  menta_login:
+    container_name: menta_login
+    build:
+      context: .
+      dockerfile: ./Dockerfile.dev
+    restart: always
+    networks:
+      - proxy-net
+    volumes:
+      - ./src:/src
+      - ../../menta-login:/menta-login
+      - ~/.aws:/root/.aws
+    expose:
+      - "8100"
+    ports:
+      - 8100:8100
+    env_file:
+      - .env.sandbox
+
+  mongo:
+    image: mongo:5.0.3
+    command: mongod --auth
+    container_name: mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: mongo-user
+      MONGO_INITDB_ROOT_PASSWORD: mongo-password
+      MONGODB_DATA_DIR: /data/db
+      MONGODB_LOG_DIR: /dev/null
+    volumes:
+      - db_volume:/data/db
+      - db_config:/data/configdb
+    networks:
+      - proxy-net
+    ports:
+      - 27017:27017
+    logging:
+      driver: json-file
+      options:
+        max-file: "10"
+        max-size: 3m
+
+volumes:
+  db_volume:
+  db_config:
+
+networks:
+  proxy-net:
+    name: proxy-net
+    driver: bridge

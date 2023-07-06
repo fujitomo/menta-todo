@@ -1,0 +1,86 @@
+version: "3.8"
+
+services:
+  menta_login:
+    container_name: menta_login
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    restart: always
+    networks:
+      - proxy-net
+    volumes:
+      - ./src:/src
+      - ../../menta-login:/menta-login
+      - ~/.aws:/root/.aws
+    expose:
+      - "8000"
+    ports:
+      - 8000:8000
+    env_file:
+      - .env.sandbox
+
+  nginx-proxy:
+    image: jwilder/nginx-proxy
+    ports:
+      - 80:80
+      - 443:443
+    container_name: nginx-proxy
+    networks:
+      proxy-net:
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - nginx-certs:/etc/nginx/certs
+      - nginx-vhost:/etc/nginx/vhost.d
+      - nginx-html:/usr/share/nginx/html
+
+  nginx-proxy-letsencrypt:
+    image: jrcs/letsencrypt-nginx-proxy-companion
+    environment:
+      NGINX_PROXY_CONTAINER: "nginx-proxy"
+    networks:
+      proxy-net:
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - nginx-certs:/etc/nginx/certs
+      - nginx-vhost:/etc/nginx/vhost.d
+      - nginx-html:/usr/share/nginx/html
+
+  mongo:
+    image: mongo:5.0.3
+    command: mongod --auth
+    container_name: mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: mongo-user
+      MONGO_INITDB_ROOT_PASSWORD: mongo-password
+      MONGODB_DATA_DIR: /data/db
+      MONGODB_LOG_DIR: /dev/null
+    volumes:
+      - db_volume:/data/db
+      - db_config:/data/configdb
+    networks:
+      - proxy-net
+    ports:
+      - 27017:27017
+    logging:
+      driver: json-file
+      options:
+        max-file: "10"
+        max-size: 3m
+
+volumes:
+  db_volume:
+  db_config:
+  nginx-proxy-certs:
+  nginx-proxy-vhost:
+  nginx-proxy-html:
+  nginx-proxy-conf:
+  nginx-certs:
+  nginx-vhost:
+  nginx-html:
+
+networks:
+  proxy-net:
+    name: proxy-net
+    driver: bridge
