@@ -2,7 +2,8 @@ from typing import Optional
 
 from constants import BasicResponses, Endpoints, Tags
 from constants.other import COLLLECTION, ERROR_MESSAGE, REGISTRANT
-from fastapi import APIRouter, Depends, Header, Request
+from fastapi import (APIRouter, Depends, FastAPI, Header, HTTPException,
+                     Request, status)
 from fastapi.security import HTTPBearer
 from fastapi_jwt_auth import AuthJWT
 from funcs import AuthFuncs, DbFuncs, ExceptionFuncs, UtilFuncs
@@ -26,23 +27,23 @@ RESPONSES = BasicResponses.set_success_model(Response)
 
 bearer_scheme = HTTPBearer()
 
-
 @router.post(
     ENDPOINT,
     tags=TAGS,
     responses=RESPONSES,
     dependencies=[Depends(bearer_scheme)]
 )
+# Authorizeはswagger用
 async def endpoint(
-    request: RequestModel,
+    request: Request,
+    request_model: RequestModel,
     db=Depends(DbFuncs.get_database),
     Authorize: AuthJWT = Depends()
 ):
+    print("email_authentication")
     # DBのコレクションを定義
     collection = db[COLLLECTION.REGISTRANT]
     token_info: AuthFuncs.TokenPayload = request.state.token_info
-    Authorize.jwt_required()
-    current_user = Authorize.get_jwt_subject()
 
     user = await collection.find_one(
             {REGISTRANT.USER_ID: token_info.user_id}
@@ -68,10 +69,8 @@ async def endpoint(
     if result.matched_count == 0:
         ExceptionFuncs.raise_not_found(ERROR_MESSAGE.NOT_FOUND)
 
-    # print(user[REGISTRANT.ONETIME_PASSWORD])
-    # print(request_model.onetime_password)
-    # if user[REGISTRANT.ONETIME_PASSWORD] != request_model.onetime_password:
-    #     ExceptionFuncs.raise_unauthorized(ERROR_MESSAGE.TOKEN_PASSWORD)
+    if user[REGISTRANT.ONETIME_PASSWORD] != request_model.onetimepassword:
+        ExceptionFuncs.raise_unauthorized(ERROR_MESSAGE.TOKEN_PASSWORD)
 
     result = await collection.update_one(
         {"$and": [

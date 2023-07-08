@@ -32,11 +32,18 @@ export const useAPIAuth = () => {
       const params = {
         onetimepassword: onetimePassword,
       };
-      const response = await axios.post(url, params, {
-        headers: {
-          authorization: "Bearer " + accessToken,
-        },
-      });
+
+      console.log(params);
+      const response = await axios.post(
+        url,
+        { onetimepassword: onetimePassword },
+        {
+          headers: {
+            Authorization: "Bearer " + accessToken,
+            onetimepassword: onetimePassword,
+          },
+        }
+      );
       return response.data;
     } catch (error: any) {
       if (error.response) {

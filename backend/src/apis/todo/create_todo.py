@@ -1,10 +1,12 @@
-from typing import List, Optional, Union
+from typing import List, Union
 
 from constants import BasicResponses, Endpoints, Tags
 from constants.models import TodoRequestModel
 from constants.other import COLLLECTION, ERROR_MESSAGE, SUCCESS_MESSAGE, TODO
-from fastapi import APIRouter, Depends, File, Form, Header, Request
-from funcs import AuthFuncs, DbFuncs, ExceptionFuncs
+from fastapi import APIRouter, Depends, File, Form, Request
+from fastapi.security import HTTPBearer
+from fastapi_jwt_auth import AuthJWT
+from funcs import AuthFuncs, DbFuncs, ExceptionFuncs, UtilFuncs
 from funcs.todo_funcs import TodoFuncs
 from funcs.util_funcs import UtilFuncs
 from pydantic import BaseModel
@@ -20,13 +22,19 @@ ENDPOINT = Endpoints.Todo.create_todo
 TAGS = [Tags.todo]
 RESPONSES = BasicResponses.set_success_model(Response)
 
+bearer_scheme = HTTPBearer()
 
-@router.post(ENDPOINT, tags=TAGS, responses=RESPONSES)
+@router.post(ENDPOINT,
+             tags=TAGS,
+             responses=RESPONSES,
+             dependencies=[Depends(bearer_scheme)])
+# Authorizeはswagger用
 async def endpoint(
     request: Request,
     attachments: Union[List[bytes], None] = File(default=None),
     request_model: TodoRequestModel = Form(...),
-    db=Depends(DbFuncs.get_database)
+    db=Depends(DbFuncs.get_database),
+    Authorize: AuthJWT = Depends()
 ):
     # DBのコレクションを定義
     collection = db[COLLLECTION.TODO]

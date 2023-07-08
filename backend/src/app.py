@@ -1,9 +1,10 @@
 
 from apis import routers
 from constants.endpoints import Endpoints
-from fastapi import APIRouter, FastAPI
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
+from fastapi.security import HTTPBearer
 from fastapi_jwt_auth import AuthJWT
 from funcs import DbFuncs
 from other.middleware import AccessHandlingMiddleware
@@ -14,17 +15,6 @@ app = FastAPI(
     description="todo app",
     version="0.0.1",
 )
-
-
-class Settings(BaseModel):
-    authjwt_secret_key: str = "secret"
-
-
-@AuthJWT.load_config
-def get_config():
-    return Settings()
-
-
 app.include_router(routers)
 
 app.add_middleware(
@@ -34,6 +24,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+class Settings(BaseModel):
+    authjwt_secret_key: str = "secret"
+
+
+@AuthJWT.load_config
+def get_config():
+    return Settings()
 
 
 app.add_event_handler("startup", DbFuncs.start_connect)
@@ -99,3 +98,4 @@ def custom_openapi():
 app.openapi = custom_openapi
 
 app.add_middleware(AccessHandlingMiddleware)
+

@@ -1,8 +1,10 @@
-from typing import Optional, Union
+from typing import Union
 
 from constants import BasicResponses, Endpoints, Tags
 from constants.other import COLLLECTION, ERROR_MESSAGE, REGISTRANT
-from fastapi import APIRouter, Depends, Header, Request
+from fastapi import APIRouter, Depends, Request
+from fastapi.security import HTTPBearer
+from fastapi_jwt_auth import AuthJWT
 from funcs import AuthFuncs, DbFuncs, ExceptionFuncs
 from pydantic import BaseModel
 
@@ -20,15 +22,19 @@ ENDPOINT = Endpoints.Auth.get_profile
 TAGS = [Tags.auth]
 RESPONSES = BasicResponses.set_success_model(Response)
 
+bearer_scheme = HTTPBearer()
 
 @router.get(
     ENDPOINT,
     tags=TAGS,
-    responses=RESPONSES
+    responses=RESPONSES,
+    dependencies=[Depends(bearer_scheme)]
 )
+# Authorizeはswagger用
 async def endpoint(
     request: Request,
-    db=Depends(DbFuncs.get_database)
+    db=Depends(DbFuncs.get_database),
+    Authorize: AuthJWT = Depends()
 ):
     # DBのコレクションを定義
     collection = db[COLLLECTION.REGISTRANT]

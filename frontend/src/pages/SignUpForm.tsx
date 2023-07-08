@@ -16,6 +16,7 @@ import { User } from "@/types/auth";
 import DialogContent from "@mui/material/DialogContent";
 import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
+import { useRouter } from "next/router";
 import { SyntheticEvent, useState } from "react";
 import * as yup from "yup";
 import { useAPIAuth } from "../hooks/apis/useAPIAuth";
@@ -110,6 +111,8 @@ export default function SignUpForm() {
           setMessage(`${response.status}エラー`);
         }
         setSnackbarOpen(true);
+        const router = useRouter(); // ルーターを取得
+        router.push("/nextPage"); // `/nextPage` は遷移先のパスを指定します。
         return;
       }
 

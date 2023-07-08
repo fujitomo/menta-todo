@@ -1,10 +1,11 @@
-from typing import Optional
 
 from constants import BasicResponses, Endpoints, Tags
 from constants.other import (COLLLECTION, ERROR_MESSAGE, REGISTRANT,
                              SUCCESS_MESSAGE)
-from fastapi import APIRouter, Depends, Header, Request
-from funcs import AuthFuncs, DbFuncs, ExceptionFuncs
+from fastapi import APIRouter, Depends, Request
+from fastapi.security import HTTPBearer
+from fastapi_jwt_auth import AuthJWT
+from funcs import AuthFuncs, DbFuncs, ExceptionFuncs, UtilFuncs
 from funcs.util_funcs import UtilFuncs
 from pydantic import BaseModel
 
@@ -24,16 +25,19 @@ ENDPOINT = Endpoints.Auth.update_password
 TAGS = [Tags.auth]
 RESPONSES = BasicResponses.set_success_model(Response)
 
+bearer_scheme = HTTPBearer()
 
 @router.post(
     ENDPOINT,
     tags=TAGS,
-    responses=RESPONSES
+    responses=RESPONSES,
+    dependencies=[Depends(bearer_scheme)]
 )
 async def endpoint(
     request: Request,
     request_model: RequestModel,
-    db=Depends(DbFuncs.get_database)
+    db=Depends(DbFuncs.get_database),
+    Authorize: AuthJWT = Depends()
 ):
     # DBのコレクションを定義
     collection = db[COLLLECTION.REGISTRANT]
