@@ -12,8 +12,8 @@ class Request(BaseModel):
 
 
 class Response(MultiPartModel):
-    access_token: str
-    refresh_token: str
+    accesstoken: str
+    refreshtoken: str
 
 
 router = APIRouter()
@@ -47,5 +47,7 @@ async def endpoint(
 
     access_token = AuthFuncs.get_access_token(user[REGISTRANT.USER_ID])
     refresh_token = AuthFuncs.get_refresh_token(user[REGISTRANT.USER_ID])
+    
+    print('refreshtoken:{refresh_token}')
 
-    return Response(access_token=access_token).set_cookie(key="refresh_token", value=refresh_token, httponly=True)
+    return Response(accesstoken=access_token,refreshtoken=refresh_token)

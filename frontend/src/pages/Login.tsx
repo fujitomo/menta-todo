@@ -1,40 +1,48 @@
 import MainLayout from "@/components/pages/MainLayout";
+import { User } from "@/types/auth";
 import { yupResolver } from "@hookform/resolvers/yup";
-import { Box, Button, TextField, Typography } from "@mui/material";
-import { useContext } from "react";
-import { SubmitHandler, useForm } from "react-hook-form";
-// import { useNavigate } from "react-router-dom";
+import { Alert, Box, Button, Snackbar, TextField, Typography } from "@mui/material";
+import Cookies from 'js-cookie';
 import Link from "next/link";
-import { useRouter } from "next/router";
+import React, { useState } from "react";
+import { SubmitHandler, useForm } from "react-hook-form";
 import * as yup from "yup";
-import { LoginContext } from "../components/shared/LoginProvider";
+import { useAPIAuth } from "../hooks/apis/useAPIAuth";
 
 export default function Login() {
-  const router = useRouter();
-  const { login, setLogin } = useContext(LoginContext);
-
-  //ログイン時ページ遷移用
-  // const navigate = useNavigate();
-  // useEffect(() => {
-  //   var localLogin = localStorage.getItem("login");
-  //   if (localLogin || login) {
-  //     navigate("/");
-  //   }
-  // }, [login, navigate]);
-
-  //TODO バリデーションをフックに分離する？
+  const [message, setMessage] = useState("");
+  const rootUrl = process.env.NEXT_PUBLIC_APIROOT;
+  const [isSnackbarOpen, setSnackbarOpen] = useState(false);
+  const { login } = useAPIAuth();
 
   //フォーム送信時の処理;
-  const onSubmit: SubmitHandler<SampleFormInput> = (data: any) => {
-    // バリデーションチェックOK！なときに行う処理を追加
-    setLogin(true);
-    localStorage.setItem("login", "true");
+  const onSubmit: SubmitHandler<FormInput> = async () => {
+    const response = await login(getValues());
+    if (response) {
+      switch (response.status) {
+        case 200:
+          // Cookies.set('accessToken', response.data.accesstoken);
+          Cookies.set('refreshToken', response.data.refreshtoken);
+          window.location.href = "/TodoList";
+          break;
+        default:
+          setMessage("ログイン出来ません。");
+          setSnackbarOpen(true);
+          break;
+      }
+    } else {
+      setMessage("ログイン出来ません。ネットワークに接続できているかご確認下さい。");;
+      setSnackbarOpen(true);
+    }
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbarOpen(false);
   };
 
   // フォームの型
-  interface SampleFormInput {
+  interface FormInput {
     email: string;
-    name: string;
     password: string;
   }
 
@@ -42,12 +50,12 @@ export default function Login() {
   const schema = yup.object({
     email: yup
       .string()
-      .required("必須だよ")
-      .email("正しいメールアドレス入力してね"),
+      .required("必須です。")
+      .email("正しいメールアドレス入力して下さい。"),
     password: yup
       .string()
-      .required("必須だよ")
-      .min(6, "少ないよ")
+      .required("必須です。")
+      .min(6, "パスワードの文字数が少ないです。")
       //TODO　.$が必要な理由を後で調べる
       .matches(
         /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&].*$/,
@@ -59,7 +67,8 @@ export default function Login() {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<SampleFormInput>({
+    getValues,
+  } = useForm<User>({
     resolver: yupResolver(schema),
   });
 
@@ -122,17 +131,37 @@ export default function Login() {
           </Button>
           <Link href="/SignUpForm" legacyBehavior passHref>
             <Button
-              href="/SignUpForm"
               className="text-2xl w-11/12 bg-[#B29649] hover:bg-[#B29649]  font-base text-black font-bold rounded mb-10"
               type="submit"
               fullWidth
               variant="contained"
-              // onClick={handleSignUpButtonClick}
-              // onClick={handleSubmit(onSubmit)}
             >
               新規登録
             </Button>
           </Link>
+
+          <Snackbar
+            open={isSnackbarOpen}
+            anchorOrigin={{ vertical: "top", horizontal: "center" }}
+            autoHideDuration={6000}
+            message={message}
+          >
+            <Alert
+              onClose={handleCloseSnackbar}
+              severity="error"
+              className="bg-red-400 text-white"
+            >
+              {/*　改行処理 */}
+              <Typography>
+                {message.split('\n').map((line, index) => (
+                  <React.Fragment key={index}>
+                    {line}
+                    <br />
+                  </React.Fragment>
+                ))}
+              </Typography>
+            </Alert>
+          </Snackbar>
 
           {/* <Grid container>
             <Grid item xs>

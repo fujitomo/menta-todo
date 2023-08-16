@@ -8,61 +8,124 @@ import {
   DialogActions,
   Snackbar,
   TextField,
-  Typography,
+  Typography
 } from "@mui/material";
 import { SubmitHandler, useForm } from "react-hook-form";
-// import { useNavigate } from "react-router-dom";
+
 import { User } from "@/types/auth";
 import DialogContent from "@mui/material/DialogContent";
 import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
-import { SyntheticEvent, useState } from "react";
+import Cookies from "js-cookie";
+import { useRouter } from "next/router";
+import React, { useState } from "react";
 import * as yup from "yup";
 import { useAPIAuth } from "../hooks/apis/useAPIAuth";
 
+
 export default function SignUpForm() {
-  // const router = useRouter();
-  // const { login, setLogin } = useContext(LoginContext);
-
-  //ログイン時ページ遷移用
-  // const navigate = useNavigate();
-  // useEffect(() => {
-  //   var localLogin = localStorage.getItem("login");
-  //   if (localLogin || login) {
-  //     navigate("/");
-  //   }
-  // }, [login, navigate]);
-
-  //TODO バリデーションをフックに分離する？
-  const rootUrl = process.env.NEXT_PUBLIC_APIROOT;
 
   const { createUser, emailAuthentication } = useAPIAuth();
 
-  const [isModalOpen, setModalOpen] = useState(false);
+  const [isAuthModalOpen, setAuthModalOpen] = useState(false);
+  const [isComplateModalOpen, setComplateModalOpen] = useState(false);
   const [isSnackbarOpen, setSnackbarOpen] = useState(false);
   const [message, setMessage] = useState("");
-  const { setValue } = useForm<User>();
 
-  const handleCloseModal = () => {
+  const handleCloseComplateModal = () => {
     // モーダルを閉じる
-    setModalOpen(false);
+    setComplateModalOpen(false);
   };
 
-  const handleCloseSnackbar = (event: SyntheticEvent<Element, Event>) => {
+  const handleCloseSnackbar = () => {
     setSnackbarOpen(false);
   };
 
   const [isLoading, setLoading] = useState(false);
 
+  const router = useRouter(); // ルーターを取得
+
+  // モーダル外部のクリックイベントを停止（クリックするとモーダルが閉じるので）
+  const handleOverlayClick = (event: any) => {
+    // ダイアログ外部のクリックイベントを停止
+    event.stopPropagation();
+  };
+
+  const onSubmitCompleteClose = () => {
+    setComplateModalOpen(false);
+    console.log("Profile画面に遷移します。");
+    router.push("/Profile");
+  };
+
+  // バリデーションルール
+  const schema = yup.object({
+    email: yup
+      .string()
+      .required("入力必須です。")
+      .email("正しいメールアドレスを入力して下さい。"),
+    password: yup
+      .string()
+      .required("入力必須です。")
+      .min(6, "文字数が少ないです。6文字以上入力して下さい。")
+      .matches(
+        /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&].*$/,
+        "パスワードには大文字、小文字、数字、記号のすべてを含んで下さい。"
+      ),
+    onetimepassword: yup
+      .string()
+      .required("入力必須です。"),
+  });
+  const {
+    register,
+    setValue,
+    handleSubmit,
+    formState: { errors },
+    getValues,
+  } = useForm<User>({
+    defaultValues: { onetimepassword: ' ' },
+    resolver: yupResolver(schema),
+  });
+
+  const onSubmitEmailAuthentication: SubmitHandler<User> = async () => {
+    let accessToken = Cookies.get('accessToken');
+    const response = await emailAuthentication(
+      accessToken ?? undefined,
+      getValues().onetimepassword
+    );
+
+    if (response) {
+      if (response.status !== 200) {
+        if (response.status === 409) {
+          setMessage(`${response.status}エラー：既に登録されています。`); // あなたのエラーメッセージを設定します
+        } else if (response.status === 401) {
+          setMessage(
+            `${response.status}エラー：ワンタイムパスワードを間違えている可能性があります。\n
+            または、ワンタイムパスワードの1日あたりの生成回数上限に達している可能性があります。`
+          );
+        } else {
+          setMessage(`${response.status}エラー`);
+        }
+        setSnackbarOpen(true);
+        return;
+      }
+
+      // ユーザー作成成功時の処理
+      Cookies.set('accessToken', response.data.accesstoken);
+      Cookies.set('refreshToken', response.data.refreshtoken);
+      setAuthModalOpen(false);
+      setComplateModalOpen(true);
+      return;
+    } else {
+      setMessage("404エラー:サーバーに接続できません。");
+      setSnackbarOpen(true);
+    }
+  };
+
   //フォーム送信時の処理
   const onSubmitCreateUser: SubmitHandler<User> = async () => {
-    setValue("onetimepassword", "");
     setLoading(true);
-    console.log(getValues());
-    const response = await createUser(rootUrl, getValues());
-    console.log("レスポンス：", response);
+    const response = await createUser(getValues());
     if (response) {
-      console.log(response.status);
       if (response.status !== 200) {
         if (response.status === 409) {
           setMessage(`${response.status}エラー：既に登録されています。`); // あなたのエラーメッセージを設定します
@@ -76,96 +139,25 @@ export default function SignUpForm() {
         setSnackbarOpen(true);
       } else {
         // ユーザー作成成功時の処理
-        console.log("ワンタイムパスワード発行に成功しました:", response);
-        console.log("accesstken:", response.data.accesstoken);
-        localStorage.setItem("accessToken", response.data.accesstoken);
+        Cookies.set('accessToken', response.data.accesstoken);
+        console.log(Cookies.get('accessToken'));
         setSnackbarOpen(false);
-        setModalOpen(true);
+        setAuthModalOpen(true);
+        setValue("onetimepassword", "");
       }
     } else {
-      console.error("ワンタイムパスワード発行に失敗しました。");
       setMessage("404エラー:サーバーに接続できません。");
       setSnackbarOpen(true);
     }
     setLoading(false);
   };
 
-  //TODO ワンタイムパスワード認証
-  const onSubmitEmailAuthentication: SubmitHandler<User> = async () => {
-    console.log(getValues());
-    const response = await emailAuthentication(
-      rootUrl,
-      getValues().onetimepassword
-    );
-    if (response) {
-      console.log(response.status);
-      if (response.status !== 200) {
-        if (response.status === 409) {
-          setMessage(`${response.status}エラー：既に登録されています。`); // あなたのエラーメッセージを設定します
-        } else if (response.status === 401) {
-          setMessage(
-            `${response.status}エラー：このメールアドレスではワンタイムパスワードの1日あたの生成回数上限に達しています。`
-          );
-        } else {
-          setMessage(`${response.status}エラー`);
-        }
-        setSnackbarOpen(true);
-        return;
-      }
-
-      // ユーザー作成成功時の処理
-      console.log("ユーザ本登録に成功しました:", response);
-      localStorage.setItem("accessToken", response.data.accessToken);
-      setModalOpen(true);
-      return;
-    } else {
-      console.error("ワンタイムパスワード発行に失敗しました。");
-      setMessage("404エラー:サーバーに接続できません。");
-      setSnackbarOpen(true);
-    }
+  const handleCloseAuthModal = () => {
+    // onetimepassword フィールドの値を空に設定
     // モーダルを閉じる
-    //setModalOpen(false);
+    setValue("onetimepassword", "aaaa");
+    setAuthModalOpen(false);
   };
-
-  // const handleCloseSnackbar = (
-  //   event: React.MouseEvent<HTMLButtonElement, MouseEvent>
-  // ) => {
-  //   setSnackbarOpen(false);
-  // };
-
-  // モーダル外部のクリックイベントを停止（クリックするとモーダルが閉じるので）
-  const handleOverlayClick = (event: any) => {
-    // ダイアログ外部のクリックイベントを停止
-    event.stopPropagation();
-  };
-
-  //フォーム送信時の処理
-
-  // バリデーションルール
-  const schema = yup.object({
-    email: yup
-      .string()
-      .required("入力必須です。")
-      .email("正しいメールアドレスを入力して下さい。"),
-    password: yup
-      .string()
-      .required("入力必須です。")
-      .min(6, "文字数が少ないです。6文字以上入力して下さい。")
-      //TODO　.$が必要な理由を後で調べる
-      .matches(
-        /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&].*$/,
-        "パスワードには大文字、小文字、数字、記号のすべてを含んで下さい。"
-      ),
-  });
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    getValues,
-  } = useForm<User>({
-    resolver: yupResolver(schema),
-  });
 
   return (
     <MainLayout>
@@ -209,14 +201,10 @@ export default function SignUpForm() {
               </Box>
             }
           />
-          {/* <FormControlLabel
-            control={<Checkbox value="remember" color="primary" />}
-            label="パスワードを保存しますか？"
-          /> */}
 
           <Button
             href="/SignUpForm"
-            className="text-2xl w-11/12 bg-[#B29649] hover:bg-[#B29649]  font-base text-black font-bold rounded mb-10"
+            className={`text-2xl w-11/12 bg-[#B29649] hover:bg-[#B29649] font-base text-black font-bold rounded mb-10 ${(isAuthModalOpen || isComplateModalOpen) ? 'pointer-events-none' : ''}`}
             type="submit"
             fullWidth
             disabled={isLoading}
@@ -226,70 +214,114 @@ export default function SignUpForm() {
             ワンタイムパスワード発行
           </Button>
 
-          <Snackbar
-            open={isSnackbarOpen}
-            anchorOrigin={{ vertical: "top", horizontal: "center" }}
-            autoHideDuration={6000}
-            message={message}
-          >
-            <Alert
-              onClose={handleCloseSnackbar}
-              severity="error"
-              className="bg-red-400 text-white"
-            >
-              {message}
-            </Alert>
-          </Snackbar>
+          <MessageSnackbar />
+          <AuthModal />
+          <CompleteModal />
 
-          <div className="overlay" onClick={handleOverlayClick}>
-            <Dialog
-              open={isModalOpen}
-              onClose={handleCloseModal}
-              className="pointer-events-none"
-            >
-              <DialogTitle>ワンタイムパスワード入力</DialogTitle>
-              <DialogContent>
-                <DialogContentText>
-                  メールアドレスに届いたパスワードを入力して下さい。
-                </DialogContentText>
-                <TextField
-                  className="pointer-events-auto"
-                  autoFocus
-                  margin="dense"
-                  id="onetimepassword"
-                  label="ワンタイムパスワード"
-                  type="onetimepassword"
-                  fullWidth
-                  variant="standard"
-                  {...register("onetimepassword")}
-                />
-              </DialogContent>
-              <DialogActions>
-                <Button
-                  className="pointer-events-auto bg-[#B29649] hover:bg-[#B29649]  font-base text-black font-bold rounded"
-                  onClick={handleSubmit(onSubmitEmailAuthentication)}
-                >
-                  実行
-                </Button>
-                <Button
-                  className="pointer-events-auto bg-[#B29649] hover:bg-[#B29649]  font-base text-black font-bold rounded"
-                  onClick={handleCloseModal}
-                >
-                  閉じる
-                </Button>
-              </DialogActions>
-            </Dialog>
-          </div>
-
-          {/* <Grid container>
-            <Grid item xs>
-              <Link href="#" variant="body2">
-                パスワードを忘れましたか？
-              </Link>
-            </Grid>
-          </Grid> */}
         </Box>
       </Box>
-    </MainLayout>
+    </MainLayout >
   );
+
+  function MessageSnackbar() {
+    return (
+      <Snackbar
+        open={isSnackbarOpen}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        autoHideDuration={6000}
+        message={message}
+      >
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity="error"
+          className="bg-red-400 text-white"
+        >
+          <Typography>
+            {message.split('\n').map((line, index) => (
+              <React.Fragment key={index}>
+                {line}
+                <br />
+              </React.Fragment>
+            ))}
+          </Typography>
+        </Alert>
+      </Snackbar>
+    )
+  }
+
+  function AuthModal() {
+    return (
+      <Dialog
+        open={isAuthModalOpen}
+        onClose={handleCloseAuthModal}
+        className="pointer-events-none z-{1000}"
+      >
+        <DialogTitle>ワンタイムパスワード入力</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            メールアドレスに届いたパスワードを入力して下さい。
+          </DialogContentText>
+          <TextField
+            className="pointer-events-auto"
+            autoFocus
+            required
+            margin="dense"
+            fullWidth
+            id="onetimepassword"
+            label="ワンタイムパスワード"
+            variant="standard"
+            type="onetimepassword"
+            {...register("onetimepassword")}
+            error={"onetimepassword" in errors}
+            helperText={
+              <Box component="span" className="text-base text-red-500">
+                {errors.onetimepassword?.message}
+              </Box>
+            }
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button
+            className="pointer-events-auto bg-[#B29649] hover:bg-[#B29649]  font-base text-black font-bold rounded"
+            onClick={handleSubmit(onSubmitEmailAuthentication)}
+          >
+            実行
+          </Button>
+          <Button
+            className="pointer-events-auto bg-[#B29649] hover:bg-[#B29649]  font-base text-black font-bold rounded"
+            onClick={handleCloseAuthModal}
+          >
+            閉じる
+          </Button>
+        </DialogActions>
+      </Dialog >
+    );
+  }
+
+  function CompleteModal() {
+    return (
+      <Dialog
+        open={isComplateModalOpen}
+        onClose={handleCloseComplateModal}
+        className="pointer-events-none"
+        disableEnforceFocus={false}
+      >
+        <DialogTitle>ユーザー登録・認証完了</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            ユーザー登録・認証が完了しました。<br />
+            次回よりログイン画面からログインして下さい。
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            className="pointer-events-auto bg-[#B29649] hover:bg-[#B29649]  font-base text-black font-bold rounded"
+            onClick={onSubmitCompleteClose}
+          >
+            閉じる
+          </Button>
+        </DialogActions>
+      </Dialog>
+    );
+  }
 }

@@ -1,13 +1,15 @@
 import hashlib
 from datetime import date
-from typing import Optional, Union
+from typing import Union
 
 from constants import BasicResponses, Endpoints, Tags
 from constants.models import MultiPartModel
 from constants.other import (COLLLECTION, ERROR_MESSAGE, REGISTRANT, SETTINGS,
                              SUCCESS_MESSAGE)
-from fastapi import APIRouter, Depends, File, Form, Header, Request, UploadFile
-from funcs import AuthFuncs, DbFuncs, ExceptionFuncs
+from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
+from fastapi.security import HTTPBearer
+from fastapi_jwt_auth import AuthJWT
+from funcs import AuthFuncs, DbFuncs, ExceptionFuncs, UtilFuncs
 from funcs.upload_file import FileManager
 from funcs.util_funcs import UtilFuncs
 from pydantic import BaseModel
@@ -29,13 +31,19 @@ ENDPOINT = Endpoints.Auth.create_profile
 TAGS = [Tags.auth]
 RESPONSES = BasicResponses.set_success_model(Response)
 
+bearer_scheme = HTTPBearer()
 
-@router.post(ENDPOINT, tags=TAGS, responses=RESPONSES)
+@router.post(ENDPOINT,
+             tags=TAGS,
+             responses=RESPONSES,
+             dependencies=[Depends(bearer_scheme)])
+# Authorizeはswagger用
 async def endpoint(
     request: Request,
     request_model: RequestModel = Form(...),
     file: Union[UploadFile, None] = File(default=None),
-    db=Depends(DbFuncs.get_database)
+    db=Depends(DbFuncs.get_database),
+    Authorize: AuthJWT = Depends()
 ):
     # DBのコレクションを定義
     collection = db[COLLLECTION.REGISTRANT]

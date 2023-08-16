@@ -1,1 +1,4 @@
-__pycache__
+backend/.env.sandbox
+backend/src/funcs/cryptopics-email-credentials.csv
+backend/src/funcs/menta-s3_accessKeys.csv
+backend/src/funcs/menta-s3-credentials.csv

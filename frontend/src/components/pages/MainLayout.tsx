@@ -1,4 +1,4 @@
-import { Box, Container } from "@mui/material";
+import { Box } from "@mui/material";
 import React, { ReactNode } from "react";
 import Header from "../header/Header";
 
@@ -10,10 +10,10 @@ const MainLayout = ({ children }: Props) => {
   return (
     <Box className="h-screen w-full bg-base_color">
       <Header />
-      <Container component="main">
+      <Box component="main">
         {/* TODO <React.Fragmentで囲む理由（外すとエラーになる） */}
         <React.Fragment>{children}</React.Fragment>
-      </Container>
+      </Box >
     </Box>
   );
 };

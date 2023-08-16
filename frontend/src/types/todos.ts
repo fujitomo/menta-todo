@@ -1,5 +1,21 @@
 type Status = '待機中' | '次に対応' | '進行中' | '完了'
 
+type Todo = {
+  user_id: string
+  todo_id: string
+  title: string
+  description?: string
+  date_start?: Date
+  date_end?: Date
+  tags?: string[]
+  current_state: Status
+  color: string
+  attachments?: File[]
+  create_date: Date
+  update_date?: Date
+  completed_date?: Date
+}
+
 type PostTodos = {
   todo_id: string
   title: string
@@ -39,4 +55,5 @@ type TodoFilterParams = {
   attachments_exists?: boolean
 }
 
-export type { PostTodos, FetchTodos, Status, TodoFilterParams }
+export type { FetchTodos, PostTodos, Status, Todo, TodoFilterParams }
+

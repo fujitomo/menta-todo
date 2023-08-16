@@ -13,6 +13,7 @@ from constants.other import ERROR_MESSAGE, REGISTRANT
 from pydantic import BaseModel
 
 from .exception_funcs import ExceptionFuncs
+from jwt.exceptions import DecodeError
 
 
 class TokenType(Enum):
@@ -38,10 +39,10 @@ class AuthFuncs:
                 algorithms=["HS256"],
             )
             return TokenPayload(**payload)
-        except jwt.ExpiredSignatureError:
+        except (jwt.ExpiredSignatureError, ValueError,DecodeError) :
             return None
         except Exception:
-            print(traceback.format_exc())
+            print("エラー:" + traceback.format_exc())
             ExceptionFuncs.raise_unauthorized(ERROR_MESSAGE.TOKEN_AUTHORITY)
 
     @staticmethod
