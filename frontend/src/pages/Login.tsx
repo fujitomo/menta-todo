@@ -7,19 +7,18 @@ import Link from "next/link";
 import React, { useState } from "react";
 import { SubmitHandler, useForm } from "react-hook-form";
 import * as yup from "yup";
-import { useAPI } from "../hooks/apis/useAPI";
+import { useAPIAuth } from "../hooks/apis/useAPIAuth";
 
 export default function Login() {
   const [message, setMessage] = useState("");
+  const rootUrl = process.env.NEXT_PUBLIC_APIROOT;
   const [isSnackbarOpen, setSnackbarOpen] = useState(false);
-  const { login } = useAPI();
+  const { login } = useAPIAuth();
 
   //フォーム送信時の処理;
   const onSubmit: SubmitHandler<FormInput> = async () => {
     const response = await login(getValues());
-    console.log(response);
     if (response) {
-      console.log(response);
       switch (response.status) {
         case 200:
           Cookies.set('accessToken', response.data.accesstoken);
@@ -75,7 +74,7 @@ export default function Login() {
 
   return (
     <MainLayout>
-      <Box className="bg-white mt-20 w-2/3 text-center mx-auto py-10">
+      <Box className="bg-white mt-32 w-2/3 text-center mx-auto py-10">
         <Typography className="text-4xl mb-10">
           ログイン
         </Typography>
@@ -130,17 +129,16 @@ export default function Login() {
           >
             ログイン
           </Button>
-          <Box className="text-right">
-            <Link
-              href="/SignUpForm"
-              legacyBehavior
-              passHref
+          <Link href="/SignUpForm" legacyBehavior passHref>
+            <Button
+              className="text-2xl w-11/12 bg-[#B29649] hover:bg-[#B29649]  font-base text-black font-bold rounded mb-10"
+              type="submit"
+              fullWidth
+              variant="contained"
             >
-              <a className="text-xl transition-transform duration-300 ease-in-out transform hover:scale-105 hover:text-blue-500">
-                新規登録はこちら
-              </a>
-            </Link>
-          </Box>
+              新規登録
+            </Button>
+          </Link>
 
           <Snackbar
             open={isSnackbarOpen}

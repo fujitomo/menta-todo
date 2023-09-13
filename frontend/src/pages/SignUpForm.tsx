@@ -11,7 +11,7 @@ import {
   Typography
 } from "@mui/material";
 import { SubmitHandler, useForm } from "react-hook-form";
-import Link from "next/link";
+
 import { User } from "@/types/auth";
 import DialogContent from "@mui/material/DialogContent";
 import DialogContentText from "@mui/material/DialogContentText";
@@ -20,12 +20,12 @@ import Cookies from "js-cookie";
 import { useRouter } from "next/router";
 import React, { useState } from "react";
 import * as yup from "yup";
-import { useAPI } from "../hooks/apis/useAPI";
+import { useAPIAuth } from "../hooks/apis/useAPIAuth";
 
 
 export default function SignUpForm() {
 
-  const { createUser, emailAuthentication } = useAPI();
+  const { createUser, emailAuthentication } = useAPIAuth();
 
   const [isAuthModalOpen, setAuthModalOpen] = useState(false);
   const [isComplateModalOpen, setComplateModalOpen] = useState(false);
@@ -161,7 +161,7 @@ export default function SignUpForm() {
 
   return (
     <MainLayout>
-      <Box className="bg-white mt-20 w-2/3 text-center mx-auto py-10">
+      <Box className="bg-white mt-32 w-2/3 text-center mx-auto py-10">
         <Typography className="text-4xl mb-10">新規登録</Typography>
         <Box
           className="w-5/6 mx-auto"
@@ -204,7 +204,7 @@ export default function SignUpForm() {
 
           <Button
             href="/SignUpForm"
-            className={`text-2xl w-11/12 bg-[#B29649] hover:bg-[#B29649] font-base text-black font-bold rounded my-4 ${(isAuthModalOpen || isComplateModalOpen) ? 'pointer-events-none' : ''}`}
+            className={`text-2xl w-11/12 bg-[#B29649] hover:bg-[#B29649] font-base text-black font-bold rounded mb-10 ${(isAuthModalOpen || isComplateModalOpen) ? 'pointer-events-none' : ''}`}
             type="submit"
             fullWidth
             disabled={isLoading}
@@ -213,17 +213,6 @@ export default function SignUpForm() {
           >
             ワンタイムパスワード発行
           </Button>
-          <Box className="text-right">
-            <Link
-              href="/Login"
-              legacyBehavior
-              passHref
-            >
-              <a className="text-xl transition-transform duration-300 ease-in-out transform hover:scale-105 hover:text-blue-500">
-                ログインはこちら
-              </a>
-            </Link>
-          </Box>
 
           <MessageSnackbar />
           <AuthModal />

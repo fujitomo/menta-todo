@@ -1,11 +1,11 @@
-import { useAPI } from "../hooks/apis/useAPI";
+import { useAPIAuth } from "../hooks/apis/useAPIAuth";
 
 //サーバーサイドのみで使用可能
 export const checkLogin = async (
     accessToken: string | undefined,
     refreshToken: string | undefined
 ) => {
-    const { getProfile } = useAPI();
+    const { getProfile } = useAPIAuth();
 
     try {
         const response = await getProfile(accessToken, refreshToken);
@@ -17,7 +17,6 @@ export const checkLogin = async (
             newToken: newtoken
         };
     } catch (error) {
-        console.log("エラー");
         // エラー処理（例：ログインページに遷移）
         return {
             isLogin: false,
@@ -25,6 +24,7 @@ export const checkLogin = async (
         };
     }
 };
+
 
 
 export const redirectToLogin = () => {

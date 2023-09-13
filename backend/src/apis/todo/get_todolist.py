@@ -49,25 +49,23 @@ async def endpoint(
         regex_pattern = f".*{request_model.description}.*"
         search[TODO.DESCRIPTION] = {"$regex": regex_pattern, "$options": "i"}
 
-    if request_model.attachments_existence is not None:
-        if request_model.attachments_existence:
-            search["attachments.0"] = {"$exists": True}
-        else:
-            search["attachments.0"] = {"$exists": False}
+    if request_model.attachments_existence:
+        search["attachments.0"] = {"$exists": True}
+    else:
+        search["attachments.0"] = {"$exists": False}
 
     if request_model.work_date:
         work_date = UtilFuncs.get_date_isoformat(request_model.work_date)
         search[TODO.DATE_START] = {"$gte": work_date}
         search[TODO.DATE_END] = {"$lte": work_date}
 
-    if request_model.tags_existence is not None:
-        if request_model.tags_existence:
-            if request_model.tag:
-                search[TODO.TAGS] = request_model.tag
-            else:
-                search["tags.0"] = {"$exists": True}
+    if request_model.tags_existence:
+        if request_model.tag:
+            search[TODO.TAGS] = request_model.tag
         else:
-            search["tags.0"] = {"$exists": False}
+            search["tags.0"] = {"$exists": True}
+    else:
+        search["tags.0"] = {"$exists": False}
 
     if request_model.current_state:
         search[TODO.CURRENT_STATE] = request_model.current_state.value
@@ -92,8 +90,6 @@ async def endpoint(
         search[TODO.COMPLETED_DATE] = {"$lte": completed_date_end}
 
     search[TODO.DELETE_DATE] = {"$eq": None}
-
-    print(search)
 
     todolist_data = await collection.find(
                      search,

@@ -36,7 +36,6 @@ async def endpoint(
     db=Depends(DbFuncs.get_database),
     Authorize: AuthJWT = Depends()
 ):
-    print("333")
     # DBのコレクションを定義
     collection = db[COLLLECTION.TODO]
     token_info: AuthFuncs.TokenPayload = request.state.token_info

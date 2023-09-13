@@ -1,6 +1,6 @@
 
 import MainLayout from "@/components/pages/MainLayout";
-// import { Todo } from "@/types/todos";
+import { Todo } from "@/types/todos";
 import { checkLogin, redirectToLogin } from "@/utils/utils";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { Grid } from "@mui/material";
@@ -10,7 +10,7 @@ import { GetServerSidePropsContext, GetServerSidePropsResult } from "next";
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import * as yup from "yup";
-import { useAPI } from "../hooks/apis/useAPI";
+import { useAPIAuth } from "../hooks/apis/useAPIAuth";
 
 export default function TodoList() {
   const [value, setValue] = React.useState<Date | null>(null);
@@ -19,8 +19,8 @@ export default function TodoList() {
   };
 
   // カード情報の状態
-  // const [cards, setCards] = useState<Todo[]>([]);
-  // const { getTodoList } = useAPIAuth();
+  const [cards, setCards] = useState<Todo[]>([]);
+  const { getTodoList } = useAPIAuth();
 
   // カード情報をAPIから取得する関数
   // const fetchCards = async () => {
