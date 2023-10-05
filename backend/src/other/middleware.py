@@ -7,12 +7,15 @@ from funcs import ExceptionFuncs
 from funcs.auth_funcs import AuthFuncs
 from funcs.exception_funcs import ExceptionFuncs
 from starlette.middleware.base import BaseHTTPMiddleware
-from pydantic import BaseModel
+
+
 class AccessHandlingMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request,  call_next):
+    async def dispatch(self, request: Request, call_next):
         print(f'headers: {request.headers}')
 
         access_token = request.headers.get('authorization')
+
+        print(f'token: {access_token}')
 
         url_path = request.url.path
 
@@ -27,26 +30,29 @@ class AccessHandlingMiddleware(BaseHTTPMiddleware):
         url_path = request.url.path
         new_token = None
         token_info = ""
+
         access_token = access_token.replace('Bearer ', '')
         token_info = AuthFuncs.check_token(access_token)
 
         if not token_info:
             # トークンが無効であれば、リフレッシュする
-            refresh_token = request.headers.get('refreshtoken')
+            refresh_token = request.headers.get('refresh-token')
             if not refresh_token:
                 ExceptionFuncs.raise_unauthorized(ERROR_MESSAGE.TOKEN_EXPIRED)
 
             token_info = AuthFuncs.check_token(refresh_token)
             if token_info:
-                new_token = AuthFuncs.get_access_token(str(token_info.user_id))
+                token_info = ""
+                new_token = AuthFuncs.get_access_token(token_info.user_id)
             else:
                 ExceptionFuncs.raise_unauthorized(ERROR_MESSAGE.TOKEN_EXPIRED)
 
+        print("token_info:" + str(token_info))
         request.state.token_info = token_info
+
         response = await call_next(request)
 
-        # アクセストークンの有効期限が切れていた場合には、新しいアクセストークンを返す
         if new_token:
-            response.headers["newtoken"] = new_token.decode("utf-8")
-
+            response.headers["access-token"] = new_token
+        print(f'end: {request.headers}')
         return response

@@ -60,10 +60,10 @@ openapi = get_openapi(
 # }
 
 # リフレッシュトークンのヘッダー
-refreshtoken = {
+refresh_token = {
     "required": False,
-    "schema": {"title": "refreshtoken", "type": "string"},
-    "name": "refreshtoken",
+    "schema": {"title": "Refresh-Token", "type": "string"},
+    "name": "refresh-token",
     "in": "header",
 }
 
@@ -74,12 +74,12 @@ openapi = {
         path: {
             # parametersにアクセストークンを追加
             crud_one: {
-                k: v if k != "parameters" else v + [refreshtoken]
+                k: v if k != "parameters" else v + [refresh_token]
                 for k, v in params.items()
             }
             if "parameters" in params
             # parametersがない場合、アクセストークンを単体で追加
-            else {**params, "parameters": [refreshtoken]}
+            else {**params, "parameters": [refresh_token]}
             for crud_one, params in crud.items()
         }
         if path in Endpoints.get_auth_required_endpoints()
