@@ -1,18 +1,32 @@
 import { Box } from "@mui/material";
 import React, { ReactNode } from "react";
 import Header from "../header/Header";
+import { MessageSnackbar } from "../MessageParts/MessageSnackbar";
+import { State, notificationsState } from "@/recoilAtoms/recoilState";
+import { useNotifications } from "@/hooks/useNotifications";
+import { useRecoilValue } from "recoil";
 
 type Props = {
   children: ReactNode;
 };
 
 const MainLayout = ({ children }: Props) => {
+  const notification = useRecoilValue(notificationsState);
+  const notifications = useNotifications();
   return (
     <Box className="h-screen w-full bg-base_color">
       <Header />
       <Box component="main">
         {/* TODO <React.Fragmentで囲む理由（外すとエラーになる） */}
         <React.Fragment>{children}</React.Fragment>
+
+        <MessageSnackbar
+          open={notification.state === State.ERROR || notification.state === State.ERROR2}
+          autoHideDuration={notifications.closeTimer()}
+          onClose={notifications.handleCloseSnackbar}
+        >
+          {notifications.message()}
+        </MessageSnackbar>
       </Box >
     </Box>
   );

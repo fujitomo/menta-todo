@@ -1,123 +1,141 @@
 
 import MainLayout from "@/components/pages/MainLayout";
-import { Todo } from "@/types/todos";
+import { SearchConditions } from "@/types/todos";
 import { checkLogin, redirectToLogin } from "@/utils/utils";
 import { yupResolver } from "@hookform/resolvers/yup";
-import { Grid } from "@mui/material";
+import { Autocomplete, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Fab, Grid, Link, StandardTextFieldProps, TextField, TextFieldVariants, Typography } from "@mui/material";
 import { parse } from "cookie";
 import 'dayjs/locale/ja'; // 日本語のロケールをインポート
 import { GetServerSidePropsContext, GetServerSidePropsResult } from "next";
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import * as yup from "yup";
-import { useAPIAuth } from "../hooks/apis/useAPIAuth";
+import { useAPI } from "@/hooks/useAPI";
+import Cookies from "js-cookie";
+import { useTodoListNotifications } from "@/hooks//pages/useTodoListNotifications";
+import { TodoCard, TodoState, notificationsState } from "@/recoilAtoms/recoilState";
+import AddIcon from "@mui/icons-material/Add";
+import LoadingButton from "@mui/lab/LoadingButton";
+import { useRecoilValue } from "recoil";
+import { useNotifications } from "@/hooks/useNotifications";
+import { useRouter } from "next/router";
+import { LocalizationProvider } from '@mui/x-date-pickers-pro';
+import { AdapterDayjs } from '@mui/x-date-pickers-pro/AdapterDayjs';
+import { DateRangePicker } from '@mui/x-date-pickers-pro/DateRangePicker';
+import { SortingPopover } from "@/components/Popover/SortingPopover";
+import { TodoListSearchModal } from "@/components/dialog/TodoListSearchDaialog";
+import { useTodoListSearchDialog } from "@/hooks/dialog/useTodoListSearchModal";
 
 export default function TodoList() {
-  const [value, setValue] = React.useState<Date | null>(null);
-  const handleChange = (newValue: Date | null) => {
-    setValue(newValue);
-  };
-
-  // カード情報の状態
-  const [cards, setCards] = useState<Todo[]>([]);
-  const { getTodoList } = useAPIAuth();
-
-  // カード情報をAPIから取得する関数
-  // const fetchCards = async () => {
-  //   try {
-  //     const accessToken = Cookies.get("accessToken");
-  //     const refreshToken = Cookies.get("refreshToken");
-  //     // APIエンドポイントからデータを取得（エンドポイントを適切に変更してください）
-  //     const response = await getTodoList(accessToken, refreshToken);
-  //     if (response) {
-  //       setCards(response.data);
-  //     }
-  //   } catch (error) {
-  //     console.error('カード情報の取得に失敗しました:', error);
-  //   }
-  // };
-
-  // コンポーネントがマウントされた際にカード情報を取得
-  // React.useEffect(() => {
-  //   fetchCards();
-  // }, []);
-
-  // // フォームの型
-  interface FormInput {
-    username: string;
-    avatarname: string;
-    varsday: Date;
-  }
-
-  function handleClick() {
-    // ボタンがクリックされたときの処理をここに書く
-    console.log('Button clicked!');
-  }
-
-
-  // バリデーションルール
-  const schema = yup.object({
-    // email: yup
-    //   .string()
-    //   .required("必須だよ")
-    //   .email("正しいメールアドレス入力してね"),
-    // password: yup
-    //   .string()
-    //   .required("必須だよ")
-    //   .min(6, "少ないよ")
-    //   //TODO　.$が必要な理由を後で調べる
-    //   .matches(
-    //     /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&].*$/,
-    //     "パスワードには大文字、小文字、数字、記号のすべてを入れてください。"
-    //   ),
-  });
+  const {
+    getAnchorEl,
+    handleOpenPopover,
+    isOpenSortingPopover,
+    handleSortButtonClick,
+  } = useTodoListNotifications();
 
   const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<FormInput>({
-    resolver: yupResolver(schema),
-  });
+    handleShouldOpenSearchModal,
+    isShouldOpenSearchModal
+  } = useTodoListSearchDialog();
 
-  const topButtonClasses = "w-40 mr-4  text-2xl bg-[#B29649] hover:bg-[#B29649] font-base text-black font-bold rounded mb-10"
-  const cardHeader = "text-4xl mb-4 text-center";
+  const todoListNotifications = useTodoListNotifications();
 
-  //   function TodoCard({ todo }: { todo: Todo }) {
-  //     return (
-  //       < Box className="bg-white text-black border p-4 mb-4 px-25" >
-  //         <Box className="text-xs mb-2">{todo.title}：{todo.description}</Box>
-  //         <Box className="flex justify-between items-center"> {/* この行を変更 */}
-  //           <Box /> {/* この行を追加 */}
-  //           <Box className="text-m mb-2">終了日時：{todo.date_end}</Box> {/* この行を変更 */}
-  //         </Box>
-  //         <Box className="flex justify-end">
-  //           <Button
-  //             className="mr-2"
-  //             variant="contained"
-  //             style={{ backgroundColor: '#53D748', color: 'black' }}
-  //           >
-  //             更新
-  //           </Button>
-  //           <Button
-  //             className="mr-2"
-  //             variant="contained"
-  //             style={{ backgroundColor: '#DE8673', color: 'black' }}
-  //           >
-  //             削除
-  //           </Button>
-  //         </Box>
-  //       </Box >
-  //     );
-  //   }
   return (
     <MainLayout>
-      <Grid container className="px-10 mt-5"> {/* Container for horizontal alignment */}
+      <Grid container className="px-10 mt-5">
+        <Grid container className="flex justify-between items-center px-10">
+          <Link href="/TodoDetail">
+            <Fab
+              size="small"
+              className="bg-[#a08240] hover:bg-[#a08240] ml-[-45px]"
+              aria-label="add"
+            >
+              <AddIcon />
+            </Fab>
+          </Link>
+          <Grid className="flex mr-[-45px]">
+            <Button
+              className={`text-2xl bg-[#B29649] hover:bg-[#B29649] font-base text-black font-bold rounded my-4 mx-2`}
+              type="submit"
+              variant="contained"
+              onClick={handleShouldOpenSearchModal}
+            >
+              検索
+            </Button>
+            <Button
+              className={`text-2xl bg-[#B29649] hover:bg-[#B29649] font-base text-black font-bold rounded my-4 mx-2`}
+              variant="contained"
+              component="button"
+              onClick={(event) => handleOpenPopover(event)}
+            >
+              並び替え
+            </Button>
+          </Grid>
+        </Grid>
+        <TodoCardList className="mt-5" />
+      </Grid>
 
-      </Grid >
-    </MainLayout >
-
+      <TodoListSearchModal open={isShouldOpenSearchModal()} onClose={handleShouldOpenSearchModal} />
+      <SortingPopover
+        anchorEl={getAnchorEl()}
+        onClose={() => { handleSortButtonClick() }}
+        open={isOpenSortingPopover()}
+      />
+    </MainLayout>
   );
+
+  function TodoCardList(props: any) {
+    const { className } = props;
+
+    const todoStatesArray: TodoState[] = [];
+    Object.entries(TodoState).forEach(([key, value]) => {
+      todoStatesArray.push(value);
+    })
+
+    return (
+      <Grid container spacing={4} className={className}>
+        {todoStatesArray.map((sectionTitle, index) => (
+          <Grid item key={index} xs={12} sm={6} md={3} lg={3} xl={3}>
+            <Typography variant="h4" align="center">
+              {sectionTitle}
+            </Typography>
+            {todoListNotifications.getTodoCardList(sectionTitle).map((todo, todoIndex) => (
+              <TodoCard key={todoIndex} todo={todo} />
+            ))}
+          </Grid>
+        ))}
+      </Grid>
+    );
+  }
+
+  function TodoCard({ todo }: { todo: TodoCard }) {
+    return (
+      <Box className="bg-white text-black border p-4 mb-4 w-full" >
+        <Box className="text-s mb-2">{todo.title}：{todo.description}</Box>
+        <Box className="flex justify-between items-center"> {/* この行を変更 */}
+          <Box /> {/* この行を追加 */}
+          <Box className="text-m mb-2">終了日時：{todo && todo.dateEnd ? todo.dateEnd.toLocaleDateString() : '未登録'}</Box> {/* この行を変更 */}
+        </Box>
+        <Box className="flex justify-end">
+          <Button
+            className="mr-2"
+            variant="contained"
+            style={{ backgroundColor: '#53D748', color: 'black' }}
+          >
+            更新
+          </Button>
+          <Button
+            className="mr-2"
+            variant="contained"
+            style={{ backgroundColor: '#DE8673', color: 'black' }}
+          >
+            削除
+          </Button>
+        </Box>
+      </Box >
+    );
+  }
 }
 
 export async function getServerSideProps(context: GetServerSidePropsContext): Promise<GetServerSidePropsResult<{}>> {
@@ -138,6 +156,3 @@ export async function getServerSideProps(context: GetServerSidePropsContext): Pr
     return redirectToLogin();
   }
 }
-
-
-
