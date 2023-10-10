@@ -16,7 +16,6 @@ class RequestModel(BaseModel):
 
 class Response(BaseModel):
     accesstoken: str
-    refreshtoken: str
 
 
 router = APIRouter()
