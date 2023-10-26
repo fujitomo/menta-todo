@@ -5,6 +5,7 @@ import { MessageSnackbar } from "../MessageParts/MessageSnackbar";
 import { State, notificationsState } from "@/recoilAtoms/recoilState";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useRecoilValue } from "recoil";
+import { useMessageSnackbar } from "@/hooks/MessageParts/useMessageSnackbar";
 
 type Props = {
   children: ReactNode;
@@ -13,8 +14,9 @@ type Props = {
 const MainLayout = ({ children }: Props) => {
   const notification = useRecoilValue(notificationsState);
   const notifications = useNotifications();
+  const { handleCloseSnackbar } = useMessageSnackbar();
   return (
-    <Box className="h-screen w-full bg-base_color">
+    <Box className="min-h-screen w-full bg-base_color">
       <Header />
       <Box component="main">
         {/* TODO <React.Fragmentで囲む理由（外すとエラーになる） */}
@@ -23,7 +25,7 @@ const MainLayout = ({ children }: Props) => {
         <MessageSnackbar
           open={notification.state === State.ERROR || notification.state === State.ERROR2}
           autoHideDuration={notifications.closeTimer()}
-          onClose={notifications.handleCloseSnackbar}
+          onClose={handleCloseSnackbar}
         >
           {notifications.message()}
         </MessageSnackbar>

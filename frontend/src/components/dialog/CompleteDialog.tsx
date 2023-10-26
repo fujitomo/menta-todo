@@ -6,13 +6,13 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
 import React from "react";
-import { useCompleteModal } from "@/hooks/dialog/useCompleteModal";
+import { useCompleteDialog } from "@/hooks/dialog/useCompleteDialog";
 
-export function CompleteModal() {
+export function CompleteDialog() {
     const {
         onSubmitCompleteClose,
         isOpenCompleteModal
-    } = useCompleteModal();
+    } = useCompleteDialog();
 
     return (
         <Dialog

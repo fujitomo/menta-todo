@@ -3,7 +3,8 @@ import imghdr
 import io
 import os
 import re
-from typing import Union
+from typing import Optional
+from constants import env
 
 import boto3
 from constants.other import ERROR_MESSAGE
@@ -12,18 +13,16 @@ from PIL import Image
 
 path = './'
 filelist = os.listdir(path)
-data = [line.split(',') for line in open('funcs/menta-s3-credentials.csv', 'r')]
-
 
 class config:
 
-    S3_BUCKET_NAME = "menta-s3-osaka"
+    S3_BUCKET_NAME = env.S3_BUCKET_NAME
 
-    AWS_CLOUDFRONT_URL = "https://d2vckicyoq59uu.cloudfront.net"
+    AWS_CLOUDFRONT_URL = env.AWS_CLOUDFRONT_URL
 
-    AWS_ACCESS_KEY_ID = data[1][2]
-    AWS_SECRET_ACCESS_KEY = data[1][3]
-    AWS_REGION_NAME = "ap-northeast-3"
+    AWS_ACCESS_KEY_ID = env.ACCESS_KEY_ID
+    AWS_SECRET_ACCESS_KEY = env.SECRET_ACCESS_KEY
+    AWS_REGION_NAME = env.AWS_REGION_NAME
 
 
 IMG_RE = re.compile(r'image/(png|jpe?g|gif|svg)')
@@ -32,7 +31,7 @@ IMG_RE = re.compile(r'image/(png|jpe?g|gif|svg)')
 class FileManager:
 
     @staticmethod
-    def is_image_content_type(content_type: Union[str, None]) -> bool:
+    def is_image_content_type(content_type: Optional[str]) -> bool:
         if not content_type:
             return False
         return IMG_RE.match(content_type.lower()) is not None
@@ -97,13 +96,22 @@ class FileManager:
     def delete(self, folder: str, filename: str):
         try:
 
+            file_path = f"{folder}/{filename}"
+            return FileManager.delete(file_path)
+
+        except Exception:
+            return False
+
+    def delete(self, fullpath: str):
+        try:
+
             boto3_resorce_s3 = boto3.resource(
                 "s3",
                 aws_access_key_id=self.aws_access_key_id,
                 aws_secret_access_key=self.aws_secret_access_key,
                 region_name=self.aws_region_name,
             )
-            file_path = f"{folder}/{filename}"
+            file_path = f"{fullpath}"
             s3_object = boto3_resorce_s3.Object(self.s3_bucket_name, file_path)
             s3_object.delete()
             return True

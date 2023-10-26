@@ -1,10 +1,11 @@
 import { User } from '@/types/auth';
 import { useCallback, useState } from 'react';
 import { useNotifications } from '@/hooks/useNotifications';
-import { useTodoListNotifications } from '@/hooks/useTodoListNotifications';
 import { axiosService } from '@/utils/axiosService';
 import Cookies from 'js-cookie';
 import { State, TodoCard } from '@/recoilAtoms/recoilState';
+import { SearchConditions } from '@/types/todos';
+import { useRecoilDataSync } from './useRecoilDataSync';
 
 // type APIRequest<T = any> = {
 //     method: Method;
@@ -16,6 +17,9 @@ import { State, TodoCard } from '@/recoilAtoms/recoilState';
 export function useAPI() {
     const errorMessagesNetwork = "インターネットに接続できていない可能性があります。"
     const notifications = useNotifications();
+    const {
+        setTodoCardList,
+      } = useRecoilDataSync();
 
     // ユーザーを作成する処理
     const createUser = useCallback(async (user: User) => {
@@ -62,7 +66,6 @@ export function useAPI() {
         async (accessToken: string | undefined,
             onetimePassword: string
         ) => {
-            console.log(1);
             notifications.open({ id: 'emailAuthentication', state: State.PROSSING });
 
             const res = await axiosService.post({
@@ -70,13 +73,10 @@ export function useAPI() {
                 data: { onetimepassword: onetimePassword },
                 headers: { Authorization: "Bearer " + accessToken }
             });
-            console.log(res);
             if (res.statusCode === undefined) {
                 notifications.rejected({ id: "emailAuthentication", state: State.ERROR2, message: `${errorMessagesNetwork}` });
                 return
             }
-
-            console.log(res);
 
             switch (res.statusCode) {
                 case 200:
@@ -111,7 +111,11 @@ export function useAPI() {
                     password: password,
                 },
             });
-            console.log(res)
+
+            if (res.statusCode === undefined) {
+                notifications.rejected({ id: "getTodoList", state: State.ERROR, message: `${errorMessagesNetwork}` });
+                return
+            }
 
             switch (res.statusCode) {
                 case 200:
@@ -145,6 +149,8 @@ export function useAPI() {
             refreshToken: string | undefined
         ) => {
 
+            notifications.open({ id: 'getProfile', state: State.PROSSING });
+
             try {
                 const headers = {
                     Authorization: "Bearer " + accessToken,
@@ -161,10 +167,12 @@ export function useAPI() {
                 });
 
                 if (res === undefined) return { data: null, message: errorMessagesNetwork };
+
+                notifications.confirmed({ id: 'getProfile', state: State.SUCCESS });
                 return res;
             }
             catch (e: any) {
-                notifications.rejected({ id: 'login', state: State.ERROR, message: e.message });
+                notifications.rejected({ id: 'getProfile', state: State.ERROR, message: e.message });
             }
         }
         ,
@@ -173,23 +181,44 @@ export function useAPI() {
 
     const getTodoList = useCallback(async (
         accessToken: string | undefined,
-        refreshToken: string | undefined
+        refreshToken: string | undefined,
+        searchConditions: SearchConditions | undefined = undefined
     ) => {
 
         try {
+            notifications.open({ id: 'getTodoList', state: State.PROSSING });
+
             const headers = {
                 Authorization: "Bearer " + accessToken,
                 "refreshtoken": refreshToken
             };
 
+            let data = {}
+            if (searchConditions !== undefined) {
+                data = {
+                    title: searchConditions.title,
+                    description: searchConditions?.description,
+                    tags_existence: searchConditions?.tagExists,
+                    tag: searchConditions?.tagMatch,
+                    attachments_existence: searchConditions?.attachmentsExists,
+                    completed_date_start: searchConditions?.completeDateRange?.[0]?.format("YYYY-MM-DD"),
+                    completed_date_end: searchConditions?.completeDateRange?.[1]?.format("YYYY-MM-DD"),
+                    create_date_start: searchConditions?.startDateRange?.[0]?.format("YYYY-MM-DD"),
+                    create_date_end: searchConditions?.startDateRange?.[1]?.format("YYYY-MM-DD"),
+                    current_state: searchConditions?.status,
+                };
+            }
+
             const res = await axiosService.post({
                 url: '/todo/get_todolist',
-                data: {
-                    email: accessToken,
-                    password: refreshToken,
-                },
+                data: data,
                 headers: headers
             });
+
+            if (res.statusCode === undefined) {
+                notifications.rejected({ id: "getTodoList", state: State.ERROR, message: `${errorMessagesNetwork}` });
+                return
+            }
 
             switch (res.statusCode) {
                 case 200:
@@ -215,17 +244,19 @@ export function useAPI() {
                             return todoCard;
                         });
 
-                        notifications.setTodoCardList({ todoCardList: todoCardList as TodoCard[] });
+                        setTodoCardList({ todoCardList: todoCardList as TodoCard[] });
                     }
+                    notifications.confirmed({ id: 'getTodoList', state: State.SUCCESS });
                     break;
                 case 404:
                     //データなし
-                    notifications.setTodoCardList({ todoCardList: [] as TodoCard[] });
+                    setTodoCardList({ todoCardList: [] as TodoCard[] });
+                    notifications.rejected({ id: 'getTodoList', state: State.ERROR, message: "TODOデータが存在しません" });
                     break;
                 default:
                     //TODO: 空の配列を返すのは必要？
-                    notifications.setTodoCardList({ todoCardList: [] as TodoCard[] });
-                    notifications.rejected({ id: 'todoList', state: State.ERROR, message: `${res.statusCode}：エラー` });
+                    setTodoCardList({ todoCardList: [] as TodoCard[] });
+                    notifications.rejected({ id: 'getTodoList', state: State.ERROR, message: `${res.statusCode}：エラー` });
                     break;
             }
         } catch (e: any) {

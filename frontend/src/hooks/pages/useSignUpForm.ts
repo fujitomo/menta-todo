@@ -1,8 +1,6 @@
-import { useEffect } from "react";
 import { SubmitHandler, useForm } from "react-hook-form";
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
-import Cookies from "js-cookie";
 import { useRouter } from "next/router";
 import { useAPI } from "@/hooks/useAPI";
 import { useRecoilValue } from "recoil";

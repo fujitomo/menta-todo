@@ -1,6 +1,6 @@
 // hooks/useSignUpForm.js
 import { useEffect } from "react";
-import { SubmitHandler, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useAPI } from "@/hooks/useAPI";

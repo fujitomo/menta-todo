@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import List, Optional
 
 from constants import BasicResponses, Endpoints, Tags
 from constants.models import TodoUpdateRequestModel
@@ -33,7 +33,7 @@ bearer_scheme = HTTPBearer()
 async def endpoint(
     request: Request,
     request_model: TodoUpdateRequestModel,
-    attachments: Union[List[UploadFile], None] = File(default=None),
+    attachments: Optional[List[UploadFile]] = File(default=None),
     db=Depends(DbFuncs.get_database),
     Authorize: AuthJWT = Depends()
 ):

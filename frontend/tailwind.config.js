@@ -14,6 +14,7 @@ module.exports = {
       },
       colors: {
         base_color: "#F5E7D0",
+        header_color: "#CDA16F",
       },
       fontFamily: {
         base: ['"Kaisei Opti"', "sans-serif"],

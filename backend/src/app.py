@@ -67,7 +67,7 @@ refreshtoken = {
     "in": "header",
 }
 
-# プライベートURLにアクセストークンのヘッダーをつける(swagger)
+# プライベートURLにリフレッシュトークンのヘッダーをつける(swagger)
 openapi = {
     **openapi,
     "paths": {

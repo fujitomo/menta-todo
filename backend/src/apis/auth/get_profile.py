@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Optional
 
 from constants import BasicResponses, Endpoints, Tags
 from constants.other import COLLLECTION, ERROR_MESSAGE, REGISTRANT
@@ -10,10 +10,10 @@ from pydantic import BaseModel
 
 
 class Response(BaseModel):
-    user_name: Union[str, None] = None
-    birthday: Union[str, None] = None
-    avatar_photo: Union[str, None] = None
-    avatar_name: Union[str, None] = None
+    user_name: Optional[str] = None
+    birthday: Optional[str] = None
+    avatar_photo: Optional[str] = None
+    avatar_name: Optional[str] = None
 
 
 router = APIRouter()

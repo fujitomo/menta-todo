@@ -1,6 +1,6 @@
 import json
 from datetime import date, datetime
-from typing import List, Union
+from typing import List, Optional
 
 from constants.other import TODO_STATE
 from pydantic import BaseModel
@@ -19,31 +19,31 @@ class MultiPartModel(BaseModel):
 
 
 class TodoRequestModel(MultiPartModel):
-    title: Union[str, None] = None
-    description: Union[str, None] = None
-    date_start: Union[date, None] = None
-    date_end: Union[date, None] = None
-    tags: Union[List[str], None] = None
-    color: Union[str, None] = None
-    current_state: Union[TODO_STATE, None] = None
+    title: Optional[str] = None
+    description: Optional[str] = None
+    date_start: Optional[date] = None
+    date_end: Optional[date] = None
+    tags: Optional[List[str]] = None
+    color: Optional[str] = None
+    current_state: Optional[TODO_STATE] = None
 
     class Config:
         orm_mode = True
 
 
 class TodoListRequestModel(BaseModel):
-    title: Union[str, None] = None
-    description: Union[str, None] = None
-    tags_existence: Union[bool, None] = None
-    tag: Union[str, None] = None
-    attachments_existence: Union[bool, None] = None
-    color: Union[str, None] = None
-    work_date: Union[date, None] = None
-    completed_date_start: Union[date, None] = None
-    completed_date_end: Union[date, None] = None
-    create_date_start: Union[date, None] = None
-    create_date_end: Union[date, None] = None
-    current_state: Union[TODO_STATE, None] = None
+    title: Optional[str] = None
+    description: Optional[str] = None
+    tags_existence: Optional[bool] = None
+    tag: Optional[List[str]] = None
+    attachments_existence: Optional[bool] = None
+    color: Optional[str] = None
+    work_date: Optional[date] = None
+    completed_date_start: Optional[date] = None
+    completed_date_end: Optional[date] = None
+    create_date_start: Optional[date] = None
+    create_date_end: Optional[date] = None
+    current_state: Optional[TODO_STATE] = None
 
 
 class TodoUpdateRequestModel(TodoRequestModel):
@@ -51,15 +51,15 @@ class TodoUpdateRequestModel(TodoRequestModel):
 
 
 class TodoResponsModel(BaseModel):
-    user_id: Union[str, None] = None
-    todo_id: Union[str, None] = None
-    title: Union[str, None] = None
-    description: Union[str, None] = None
-    date_start: Union[date, None] = None
-    date_end: Union[date, None] = None
-    tags: Union[List[str], None] = None
-    attachments: Union[List[str], None] = None
-    color: Union[str, None] = None
-    current_state: Union[TODO_STATE, None] = None
-    completed_date: Union[date, None] = None
-    create_date: Union[datetime, None] = None
+    user_id: Optional[str] = None
+    todo_id: Optional[str] = None
+    title: Optional[str] = None
+    description: Optional[str] = None
+    date_start: Optional[date] = None
+    date_end: Optional[date] = None
+    tags: Optional[List[str]] = None
+    attachments: Optional[List[str]] = None
+    color: Optional[str] = None
+    current_state: Optional[TODO_STATE] = None
+    completed_date: Optional[date] = None
+    create_date: Optional[datetime] = None

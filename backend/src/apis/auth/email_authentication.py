@@ -41,7 +41,7 @@ async def endpoint(
 ):
     # DBのコレクションを定義
     collection = db[COLLLECTION.REGISTRANT]
-    token_info: AuthFuncs.TokenPayload = request.state.token_info
+    token_info = request.state.token_info
     user = await collection.find_one(
             {REGISTRANT.USER_ID: token_info.user_id}
     )

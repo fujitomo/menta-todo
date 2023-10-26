@@ -1,6 +1,6 @@
 import hashlib
 from datetime import date
-from typing import Union
+from typing import Optional
 
 from constants import BasicResponses, Endpoints, Tags
 from constants.models import MultiPartModel
@@ -16,9 +16,9 @@ from pydantic import BaseModel
 
 
 class RequestModel(MultiPartModel):
-    username: Union[str, None] = None
-    birthday: Union[date, None] = None
-    avatar_name: Union[str, None] = None
+    username: Optional[str] = None
+    birthday: Optional[date] = None
+    avatar_name: Optional[str] = None
 
 
 class Response(BaseModel):
@@ -41,7 +41,7 @@ bearer_scheme = HTTPBearer()
 async def endpoint(
     request: Request,
     request_model: RequestModel = Form(...),
-    file: Union[UploadFile, None] = File(default=None),
+    file: Optional[UploadFile] = File(default=None),
     db=Depends(DbFuncs.get_database),
     Authorize: AuthJWT = Depends()
 ):

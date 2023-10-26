@@ -106,8 +106,15 @@ class AuthFuncs:
     async def get_avatar_photo_hash(collection: Any, usrId: str) -> str:
         profile = await collection.find_one(
             {REGISTRANT.USER_ID: usrId})
-        db_hs = profile[REGISTRANT.AVATAR_PHOTO_HASH]
-        return str(db_hs)
+        result = profile[REGISTRANT.AVATAR_PHOTO_HASH]
+        return str(result)
+
+    @staticmethod
+    async def get_avatar_photo(collection: Any, usrId: str) -> str:
+        profile = await collection.find_one(
+            {REGISTRANT.USER_ID: usrId})
+        result = profile[REGISTRANT.AVATAR_PHOTO]
+        return str(result)
 
     @staticmethod
     def get_next_number_genration(number_genration: str) -> str:

@@ -1,16 +1,16 @@
 
 import { useRecoilValue, useSetRecoilState } from 'recoil';
-import { todoListState, State, TodoCard } from '@/recoilAtoms/recoilState';
+import { TodoCard, todoListState } from '@/recoilAtoms/recoilState';
 import React, { useState } from 'react';
 import Cookies from 'js-cookie';
 import { useAPI } from "@/hooks/useAPI";
 
-export const useTodoListNotifications = () => {
+export const useTodoList = () => {
      const setTodoListState = useSetRecoilState(todoListState);
      const { getTodoList } = useAPI();
-     const [value, setValue] = React.useState<Date | null>(null);
+     const [, setValue] = React.useState<Date | null>(null);
      const todoList = useRecoilValue(todoListState);
-     const [isModalOpen, setIsModalOpen] = useState(false);
+     const [, setIsModalOpen] = useState(false);
      const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
      const [isSortingPopover, setSortingPopover] = useState(false);
      const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
@@ -66,18 +66,14 @@ export const useTodoListNotifications = () => {
           setIsSearchModalOpen(!isSearchModalOpen); // モーダルを表示する
      };
 
-     const isShouldOpenSearchModal = () => {
-          return isSearchModalOpen; // モーダルを表示する
+     return {
+          setTodoListState,
+          getTodoCardList,
+          handleChange,
+          handleSortButtonClick,
+          isOpenSortingPopover,
+          handleOpenPopover,
+          getAnchorEl,
+          handleShouldOpenSearchModal
      };
-
-     const setTodoCardList = ({
-         todoCardList
-     }: {
-         todoCardList: TodoCard[];
-     }) => {
-         setTodoListState(todoCardList);
-     }
- 
-
-     return { setTodoCardList,setTodoListState,getTodoCardList, handleChange, handleSortButtonClick, isOpenSortingPopover, handleOpenPopover, getAnchorEl, handleShouldOpenSearchModal, isShouldOpenSearchModal };
 };

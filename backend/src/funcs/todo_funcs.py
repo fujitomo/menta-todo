@@ -103,7 +103,6 @@ class TodoFuncs:
                             attachment_bytes,
                             f"{user_id}/{SETTINGS.FOLDER_TODO_ATTACHMENTS}/{todo_id}"
                         )
-                print(attachment_up)
                 attachments_up.append(attachment_up)
                 attachments_hash.append(hash)
                 count += 1
