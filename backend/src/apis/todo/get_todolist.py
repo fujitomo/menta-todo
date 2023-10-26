@@ -60,10 +60,13 @@ async def endpoint(
         search[TODO.DATE_START] = {"$gte": work_date}
         search[TODO.DATE_END] = {"$lte": work_date}
 
+
+    print(request_model.tags_existence)
     if request_model.tags_existence is not None:
         if request_model.tags_existence:
+            print(request_model.tag)
             if request_model.tag:
-                search[TODO.TAGS] = request_model.tag
+                search[TODO.TAGS] = {"$all": request_model.tag }
             else:
                 search["tags.0"] = {"$exists": True}
         else:
@@ -92,8 +95,6 @@ async def endpoint(
         search[TODO.COMPLETED_DATE] = {"$lte": completed_date_end}
 
     search[TODO.DELETE_DATE] = {"$eq": None}
-
-    print(search)
 
     todolist_data = await collection.find(
                      search,

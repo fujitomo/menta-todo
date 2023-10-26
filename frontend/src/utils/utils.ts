@@ -56,3 +56,22 @@ export const formatDate = (date: Date) => {
     const day = String(date.getDate()).padStart(2, '0'); // 日を2桁の文字列に変換
     return `${year}/${month}/${day}`;
 }
+
+export const EXISTENCE_OPTIONS = [
+    { label: "", value: undefined },
+    { label: "有り", value: true },
+    { label: '無し', value: false },
+  ];
+
+export const STATE_ATTACHMENTS = [
+    { label: "保留", value: "保留" },
+    { label: "作業中", value: "作業中" },
+    { label: "完了", value: "完了" },
+    { label: "待機中", value: "待機中" },
+  ];
+
+export  const TAGS = [
+    { name: '仕事' },
+    { name: '遊び' },
+    { name: '勉強' },
+  ];

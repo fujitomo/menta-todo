@@ -1,6 +1,4 @@
 
-import { useEffect } from 'react';
-
 const IndexPage = () => {
   return null; // 何もレンダリングしない
 };

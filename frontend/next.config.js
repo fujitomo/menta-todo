@@ -3,4 +3,13 @@ const nextConfig = {
   reactStrictMode: true,
 };
 
-module.exports = nextConfig;
+const withInterceptStdout = require('next-intercept-stdout')
+
+module.exports = withInterceptStdout(
+  {
+    env: {
+      HOGE: process.env.HOGE,
+    },
+  },
+  (text) => (text.includes('Duplicate atom key') ? '' : text)
+)

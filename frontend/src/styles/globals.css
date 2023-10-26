@@ -31,3 +31,21 @@ body {
     )
     rgb(var(--background-start-rgb));
 }
+
+/* スクロールトラック（スクロールバーの背景部分）のスタイル */
+::-webkit-scrollbar-track {
+  background-color: #F5F5F5;
+  border-radius: 10px;
+}
+
+/* スクロールバーのハンドル部分のスタイル */
+::-webkit-scrollbar-thumb {
+  background-color: #333;  
+  border-radius: 10px;
+  border: 2px solid #F5F5F5;  /* トラックの色と同じにして、ハンドルが小さい時でも丸みを維持 */
+}
+
+/* スクロールバーの幅と高さを設定 */
+::-webkit-scrollbar {
+  width: 12px;
+}

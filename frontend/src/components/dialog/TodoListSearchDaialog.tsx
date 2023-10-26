@@ -1,100 +1,49 @@
 
-import { SearchConditions } from "@/types/todos";
-import { yupResolver } from "@hookform/resolvers/yup";
-import { Autocomplete, Box, Dialog, DialogActions, DialogContent, DialogTitle, TextField } from "@mui/material";
+import { Autocomplete, Box, Dialog, DialogActions, DialogContent, DialogTitle, TextField, styled } from "@mui/material";
 import 'dayjs/locale/ja'; // 日本語のロケールをインポート
-import React, { useState } from "react";
-import { useForm } from "react-hook-form";
-import * as yup from "yup";
-import { useAPI } from "../hooks/useAPI";
-import { notificationsState } from "@/recoilAtoms/recoilState";
+import React from "react";
 import LoadingButton from "@mui/lab/LoadingButton";
-import { useRecoilValue } from "recoil";
-import { useNotifications } from "@/hooks/useNotifications";
-import { useRouter } from "next/router";
 import { LocalizationProvider } from '@mui/x-date-pickers-pro';
 import { AdapterDayjs } from '@mui/x-date-pickers-pro/AdapterDayjs';
 import { DateRangePicker } from '@mui/x-date-pickers-pro/DateRangePicker';
-import Cookies from "js-cookie";
+import { useTodoListSearchDialog } from "@/hooks/dialog/useTodoListSearchDialog";
+import { EXISTENCE_OPTIONS, TAGS } from "@/utils/utils";
+import { TextareaAutosize as BaseTextareaAutosize } from '@mui/base/TextareaAutosize';
 
 interface TodoListSearchModalProps {
   open: boolean;
-  onClose: () => void;
+  onClose: ()
+    => void;
 }
 
 export const TodoListSearchModal: React.FC<TodoListSearchModalProps> = ({ open, onClose }) => {
-  const existence = [
-    { label: "有り", existence: true },
-    { label: '無し', existence: false },
-  ];
-
-  const stateAttachments = [
-    { label: "保留", state: "保留" },
-    { label: "作業中", state: "作業中" },
-    { label: "完了", state: "完了" },
-    { label: "待機中", state: "待機中" },
-  ];
-
-  const tags = [
-    { name: 'Hawaii' },
-    { name: 'Bali' },
-    { name: 'Fiji' },
-  ];
-
-  const stateProps = {
-    options: stateAttachments,
-    getOptionLabel: (option: any) => option.label,
-  };
-
-  const existenceProps = {
-    options: existence,
-    getOptionLabel: (option: any) => option.label,
-  };
-
-  const getValidationSchema = () => {
-    let schema: { [key: string]: any } = {
-      tags: yup.string().required("入力必須です。"),
-      password: yup.string().required("入力必須です。").min(6, "文字数が少ないです。6文字以上入力して下さい.").matches(/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&].*$/, "パスワードには大文字、小文字、数字、記号のすべてを含んで下さい."),
-    };
-
-    return yup.object(schema);
-  };
-
-  const notifications = useNotifications();
-
-  const schema = getValidationSchema();
   const {
     register,
-    setValue,
-    handleSubmit,
-    formState: { errors },
-    getValues,
-  } = useForm<SearchConditions>({
-    resolver: yupResolver(schema),
-  });
+    errors,
+    handleSearch,
+    handleTagChange,
+    isTagsActive,
+    selectedTags,
+    errorText,
+    tagExists,
+    handleValueChange,
+    setTagExists,
+    existenceProps,
+    setAttachmentsExists,
+    state,
+    stateProps,
+    setState,
+    setStartDateRange,
+    startDateRange,
+    handleDateChange,
+    completeDateRange,
+    setCompleteDateRange,
+    handleClear,
+    attachmentsExists,
+    notifications
+  } = useTodoListSearchDialog();
 
-
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [errorText, setErrorText] = useState<string | null>(null);
-  const [isTagsActive, setIsTagsActive] = useState(false);
-
-  const handleTagChange = (event: React.SyntheticEvent, newValue: string[]) => {
-    if (newValue.length <= 10) {
-      setSelectedTags(newValue);
-      setErrorText(null);
-    } else {
-      setErrorText("最大10個まで選択できます。");
-    }
-  };
-
-
-  const handleExistenceChange = (event: React.SyntheticEvent, newValue: string) => {
-    if (newValue === '有り') {
-      setIsTagsActive(true);
-    } else {
-      setIsTagsActive(false);
-    }
-  };
+  const BUTTON_CLASSNAME = "pointer-events-auto bg-[#B29649] hover:bg-[#B29649] font-base text-black font-bold rounded";
 
   return (
     <Dialog
@@ -104,65 +53,70 @@ export const TodoListSearchModal: React.FC<TodoListSearchModalProps> = ({ open, 
       maxWidth="lg" // 最大幅を設定
     >
       <DialogTitle className="bg-header_color font-black">検索条件</DialogTitle>
-      <DialogContent className="bg-base_color overflow-hidden">
-        <Box className="bg-white w-[1100px] my-8 p-8">
+      <DialogContent className="bg-base_color">
+        <Box className="bg-white w-[1100px] my-8 p-6 overflow-y-auto">
           <TextField
-            className="pointer-events-auto"
             margin="dense"
             fullWidth
             id="title"
             label="タイトル"
             type="title"
             {...register("title")}
-            error={"title" in errors}
-            helperText={
-              <Box component="span" className="text-base text-red-500">
-                {errors.title?.message}
-              </Box>
-            }
-          // disabled={notifications.isLoading()}
+            inputProps={{ maxLength: 50 }}
+            disabled={notifications.isLoading()}
           />
+          <Box className="mt-4"></Box>
           <TextField
-            className="pointer-events-auto"
             margin="dense"
             fullWidth
             id="description"
             label="説明"
             type="description"
             {...register("description")}
-            error={"title" in errors}
-            helperText={
-              <Box component="span" className="text-base text-red-500">
-                {errors.title?.message}
-              </Box>
-            }
+            inputProps={{ maxLength: 50 }}
+            disabled={notifications.isLoading()}
           />
+          {/* <BaseTextareaAutosize
+            className="
+              w-[1037px]
+              py-3 px-4
+              rounded-tl-lg rounded-bl-lg
+              border-2
+              focus:border-blue-500
+              focus:ring-blue-400
+              hover:border-black
+              hover:ring-opacity-50
+              focus:outline-none
+            "
+            {...register("description")}
+            placeholder="説明"
+            maxLength={2000}
+            minRows={2}
+          ></BaseTextareaAutosize> */}
+
           <Box className="flex space-x-4">
             <Autocomplete
               className="w-48"
-              {...existenceProps}
-              id="disable-close-on-select-1"
+              options={EXISTENCE_OPTIONS}
+              value={tagExists}
               renderInput={(params) => (
-                <TextField {...params} label="タグの有無" variant="standard" {...register("tagExists")} />
+                <TextField {...params} label="タグの有無" variant="standard" />
               )}
-              onChange={(event, newValue) => {
-                if (newValue !== null) {
-                  // タグの有無が選択された場合の処理
-                  handleExistenceChange(event, newValue.label);
-                } else {
-                  // タグの有無がクリアされた場合の処理
-                  handleExistenceChange(event, '');
-                }
+              onChange={(e, value) => {
+                handleValueChange("tagExists", e, value);
+                setTagExists(value);
               }}
+              isOptionEqualToValue={(option, value) => option.value === value.value}
+              disabled={notifications.isLoading()}
             />
+
             <Autocomplete
               multiple
               freeSolo // 入力を許可
-              disabled={!isTagsActive}
+              disabled={!isTagsActive || notifications.isLoading()} // 真偽値を確認
               id="tags-outlined"
-              className="w-[1164px] ml-11 h-40"
-              options={tags.map(option => option.name)}
-              {...register("tagExists")}
+              className="w-[1164px] ml-11 h-30"
+              options={TAGS.map(option => option.name)}
               value={selectedTags}
               renderInput={(params) => (
                 <TextField
@@ -174,34 +128,78 @@ export const TodoListSearchModal: React.FC<TodoListSearchModalProps> = ({ open, 
                   helperText={errorText}
                 />
               )}
-              onChange={handleTagChange}
+              onChange={(_event, newValue) => {
+                handleTagChange(newValue);
+              }}
             />
           </Box>
+
+          <Box className="mt-1"></Box>
 
           <Box className="flex space-x-4">
             <Autocomplete
               className="w-48"
               {...existenceProps}
               id="disable-close-on-select-1"
+              value={attachmentsExists}
               renderInput={(params) => (
                 <TextField {...params} label="添付ファイルの有無" variant="standard" />
               )}
+              onChange={(event, value) => {
+                handleValueChange("attachmentsExists", event, value);
+                setAttachmentsExists(value);
+              }}
+              isOptionEqualToValue={(option, value) =>
+                option && value ? option.value === value.value : false
+              }
+              disabled={notifications.isLoading()}
             />
+
             <Autocomplete
               className="w-48 ml-11"
               {...stateProps}
               id="disable-close-on-select-1"
+              value={state}
               renderInput={(params) => (
                 <TextField {...params} label="状態" variant="standard" />
               )}
+              onChange={(event, value) => {
+                handleValueChange("status", event, value);
+                setState(value);
+              }}
+              isOptionEqualToValue={(option, value) => option.value === value.value}
+              disabled={notifications.isLoading()}
             />
           </Box>
-          <Box display="flex" gap="18px" className="my-7">
+
+          <Box className="mt-6"></Box>
+
+          <Box display="flex" gap="18px" className="my-5">
             <LocalizationProvider dateAdapter={AdapterDayjs} dateFormats={{ monthAndYear: "YYYY年 MM月", monthShort: "MM月" }} adapterLocale="ja">
-              <DateRangePicker className="w-[500px]" localeText={{ start: '開始日（開始）', end: '開始日（終了）' }} />
+              <DateRangePicker
+                className="w-[500px]"
+                localeText={{ start: '開始日（開始）', end: '開始日（終了）' }}
+                value={startDateRange}
+                onChange={(newValue) => {
+                  console.log(newValue);
+                  setStartDateRange(newValue);
+                  handleDateChange("startDateRange", newValue);
+                }}
+                disabled={notifications.isLoading()}
+              />
             </LocalizationProvider>
             <LocalizationProvider dateAdapter={AdapterDayjs} dateFormats={{ monthAndYear: "YYYY年 MM月", monthShort: "MM月" }} adapterLocale="ja">
-              <DateRangePicker className="w-[500px]" localeText={{ start: '完了日（開始）', end: '完了日（終了）' }} />
+              <DateRangePicker
+                className="w-[500px]"
+                localeText={{ start: '完了日（開始）', end: '完了日（終了）' }}
+                value={completeDateRange}
+                onChange={(newValue) => {
+                  console.log(newValue);
+                  setCompleteDateRange(newValue);
+                  handleDateChange("completeDateRange", newValue);
+                }}
+                disabled={notifications.isLoading()}
+              />
             </LocalizationProvider>
           </Box>
         </Box>
@@ -209,26 +207,32 @@ export const TodoListSearchModal: React.FC<TodoListSearchModalProps> = ({ open, 
       <DialogActions className="bg-base_color">
         <Box className="bg-base_color mx-11 space-x-2">
           <LoadingButton
-            className="pointer-events-auto bg-[#B29649] hover:bg-[#B29649]  font-base text-black font-bold rounded"
+            className={BUTTON_CLASSNAME}
+            onClick={() => {
+              handleSearch(onClose);
+            }}
+            loading={notifications.isLoading()}
           >
             検索
           </LoadingButton>
           <LoadingButton
-            className="pointer-events-auto bg-[#B29649] hover:bg-[#B29649]  font-base text-black font-bold rounded"
-          // onClick={}
-          // loading={notifications.isLoading()}
+            className={BUTTON_CLASSNAME}
+            onClick={handleClear}
+            loading={notifications.isLoading()}
           >
             クリア
           </LoadingButton>
         </Box>
         <LoadingButton
-          className="pointer-events-auto bg-[#B29649] hover:bg-[#B29649]  font-base text-black font-bold rounded"
+          className={BUTTON_CLASSNAME}
           onClick={onClose}
-        // loading={notifications.isLoading()}
+          loading={notifications.isLoading()}
         >
           閉じる
         </LoadingButton>
       </DialogActions>
     </Dialog>
   );
+
+
 }

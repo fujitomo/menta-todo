@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import List, Optional
 
 from constants import BasicResponses, Endpoints, Tags
 from constants.models import TodoRequestModel
@@ -31,7 +31,7 @@ bearer_scheme = HTTPBearer()
 # Authorizeはswagger用
 async def endpoint(
     request: Request,
-    attachments: Union[List[bytes], None] = File(default=None),
+    attachments: Optional[List[bytes]] = File(default=None),
     request_model: TodoRequestModel = Form(...),
     db=Depends(DbFuncs.get_database),
     Authorize: AuthJWT = Depends()
@@ -47,6 +47,7 @@ async def endpoint(
 
     date_start = UtilFuncs.get_date_isoformat(request_model.date_start)
     date_end = UtilFuncs.get_date_isoformat(request_model.date_end)
+
 
     # TODO TODOクラスからの値取得がtitle以降できない(Noneになる)
     result = await collection.insert_one(

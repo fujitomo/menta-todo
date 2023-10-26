@@ -1,4 +1,4 @@
-import { useContext, useState } from "react";
+import { useState } from "react";
 
 import { AppBar, Box, Tabs, Typography } from "@mui/material";
 
@@ -12,7 +12,7 @@ export default function Header() {
   return (
     <Box>
       <AppBar position="static" className="bg-header_color">
-        <Typography className="h-10 pt-5 text-4xl">
+        <Typography className="h-10 p-5 text-4xl">
           TODOアプリケーション
         </Typography>
         <Tabs

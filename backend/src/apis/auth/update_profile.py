@@ -1,5 +1,6 @@
 from datetime import date
-from typing import Union
+from typing import Optional
+from urllib.parse import urlparse
 
 from constants import BasicResponses, Endpoints, Tags
 from constants.models import MultiPartModel
@@ -15,9 +16,9 @@ from pydantic import BaseModel
 
 
 class RequestModel(MultiPartModel):
-    username: Union[str, None] = None
-    birthday: Union[date, None] = None
-    avatar_name: Union[str, None] = None
+    username: Optional[str] = None
+    birthday: Optional[date] = None
+    avatar_name: Optional[str] = None
 
 
 class Response(BaseModel):
@@ -42,7 +43,7 @@ bearer_scheme = HTTPBearer()
 async def endpoint(
     request: Request,
     request_model: RequestModel = Form(...),
-    file: Union[UploadFile, None] = File(default=None),
+    file: Optional[UploadFile] = File(default=None),
     db=Depends(DbFuncs.get_database),
     Authorize: AuthJWT = Depends()
 ):
@@ -73,10 +74,20 @@ async def endpoint(
 
         if hs != db_hs:
             file_manager = FileManager()
+            avatar_photo = await AuthFuncs.get_avatar_photo(collection, token_info.user_id)
+
+            parsed_url = urlparse(avatar_photo)
+
+            # Pathの部分だけを取得
+            path_only = parsed_url.path.lstrip('/')
+            file_manager.delete(f'{path_only}')
             avatar_image = file_manager.upload(
                 file_byte,
                 f'{token_info.user_id}/{SETTINGS.FOLDER_AVATAR_PHOTO}'
             )
+
+            print(avatar_image)
+
             result = await collection.update_one(
                 {"$and": [
                     {REGISTRANT.USER_ID: token_info.user_id},

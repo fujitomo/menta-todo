@@ -1,21 +1,15 @@
 import MainLayout from "@/components/pages/MainLayout";
 import {
   Box,
-  Button,
-  Dialog,
-  DialogActions,
   TextField,
   Typography
 } from "@mui/material";
 import Link from "next/link";
-import DialogContent from "@mui/material/DialogContent";
-import DialogContentText from "@mui/material/DialogContentText";
-import DialogTitle from "@mui/material/DialogTitle";
 import React from "react";
 import LoadingButton from "@mui/lab/LoadingButton";
 import { useSignUpForm } from "@/hooks/pages/useSignUpForm";
 import { AuthModal } from "@/components/dialog/AuthDialog";
-import { CompleteModal } from "@/components/dialog/CompleteModal";
+import { CompleteDialog } from "@/components/dialog/CompleteDialog";
 
 export default function SignUpForm() {
 
@@ -97,7 +91,7 @@ export default function SignUpForm() {
             </Link>
           </Box>
           <AuthModal />
-          <CompleteModal />
+          <CompleteDialog />
         </Box>
       </Box>
     </MainLayout >

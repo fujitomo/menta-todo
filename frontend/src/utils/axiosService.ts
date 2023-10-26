@@ -1,4 +1,4 @@
-import axios, { AxiosRequestConfig, AxiosError } from 'axios';
+import axios, { AxiosRequestConfig } from 'axios';
 
 export type AxiosResponse = {
     statusCode?: number;

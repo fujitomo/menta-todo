@@ -1,45 +1,33 @@
 
 import MainLayout from "@/components/pages/MainLayout";
-import { SearchConditions } from "@/types/todos";
 import { checkLogin, redirectToLogin } from "@/utils/utils";
-import { yupResolver } from "@hookform/resolvers/yup";
-import { Autocomplete, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Fab, Grid, Link, StandardTextFieldProps, TextField, TextFieldVariants, Typography } from "@mui/material";
+import { Box, Button, Fab, Grid, Link, Typography } from "@mui/material";
 import { parse } from "cookie";
 import 'dayjs/locale/ja'; // 日本語のロケールをインポート
 import { GetServerSidePropsContext, GetServerSidePropsResult } from "next";
-import React, { useState } from "react";
-import { useForm } from "react-hook-form";
-import * as yup from "yup";
-import { useAPI } from "@/hooks/useAPI";
-import Cookies from "js-cookie";
-import { useTodoListNotifications } from "@/hooks//pages/useTodoListNotifications";
-import { TodoCard, TodoState, notificationsState } from "@/recoilAtoms/recoilState";
+import React from "react";
+import { useTodoList } from "@/hooks/pages/useTodoList";
+import { TodoCard, TodoState } from "@/recoilAtoms/recoilState";
 import AddIcon from "@mui/icons-material/Add";
-import LoadingButton from "@mui/lab/LoadingButton";
-import { useRecoilValue } from "recoil";
-import { useNotifications } from "@/hooks/useNotifications";
-import { useRouter } from "next/router";
-import { LocalizationProvider } from '@mui/x-date-pickers-pro';
-import { AdapterDayjs } from '@mui/x-date-pickers-pro/AdapterDayjs';
-import { DateRangePicker } from '@mui/x-date-pickers-pro/DateRangePicker';
 import { SortingPopover } from "@/components/Popover/SortingPopover";
 import { TodoListSearchModal } from "@/components/dialog/TodoListSearchDaialog";
-import { useTodoListSearchDialog } from "@/hooks/dialog/useTodoListSearchModal";
+import { useTodoListSearchDialog } from "@/hooks/dialog/useTodoListSearchDialog";
 
 export default function TodoList() {
+  
   const {
     getAnchorEl,
     handleOpenPopover,
     isOpenSortingPopover,
     handleSortButtonClick,
-  } = useTodoListNotifications();
+  } = useTodoList();
 
   const {
     handleShouldOpenSearchModal,
     isShouldOpenSearchModal
   } = useTodoListSearchDialog();
 
-  const todoListNotifications = useTodoListNotifications();
+  const todoListNotifications = useTodoList();
 
   return (
     <MainLayout>
@@ -73,7 +61,7 @@ export default function TodoList() {
             </Button>
           </Grid>
         </Grid>
-        <TodoCardList className="mt-5" />
+        <TodoCardList className="mt-1" />
       </Grid>
 
       <TodoListSearchModal open={isShouldOpenSearchModal()} onClose={handleShouldOpenSearchModal} />
@@ -89,20 +77,22 @@ export default function TodoList() {
     const { className } = props;
 
     const todoStatesArray: TodoState[] = [];
-    Object.entries(TodoState).forEach(([key, value]) => {
+    Object.entries(TodoState).forEach(([, value]) => {
       todoStatesArray.push(value);
     })
 
     return (
       <Grid container spacing={4} className={className}>
         {todoStatesArray.map((sectionTitle, index) => (
-          <Grid item key={index} xs={12} sm={6} md={3} lg={3} xl={3}>
-            <Typography variant="h4" align="center">
+          <Grid item key={index}  sm={4} md={4} lg={4} xl={3}>
+            <Typography variant="h4" align="center" className="mb-5">
               {sectionTitle}
             </Typography>
-            {todoListNotifications.getTodoCardList(sectionTitle).map((todo, todoIndex) => (
-              <TodoCard key={todoIndex} todo={todo} />
-            ))}
+            <Box className="max-h-[420px] overflow-y-auto">
+              {todoListNotifications.getTodoCardList(sectionTitle).map((todo) => (
+                <TodoCard key={todo.todoId} todo={todo} />
+              ))}
+            </Box>
           </Grid>
         ))}
       </Grid>
@@ -111,8 +101,9 @@ export default function TodoList() {
 
   function TodoCard({ todo }: { todo: TodoCard }) {
     return (
-      <Box className="bg-white text-black border p-4 mb-4 w-full" >
-        <Box className="text-s mb-2">{todo.title}：{todo.description}</Box>
+      <Box className="text-black border p-2 mb-4 w-full" style={{
+        backgroundColor: todo.color === null ? 'white' : todo.color}} >
+        <Box className="text-s mb-2"> {todo.title}：{todo.description.length > 31 ? todo.description.slice(0, 29) + "..." : todo.description}</Box>
         <Box className="flex justify-between items-center"> {/* この行を変更 */}
           <Box /> {/* この行を追加 */}
           <Box className="text-m mb-2">終了日時：{todo && todo.dateEnd ? todo.dateEnd.toLocaleDateString() : '未登録'}</Box> {/* この行を変更 */}

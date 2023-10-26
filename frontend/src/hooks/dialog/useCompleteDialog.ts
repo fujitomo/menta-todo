@@ -18,7 +18,7 @@ const getValidationSchema = (isOpenAuthModal: boolean) => {
     return yup.object(schema);
 };
 
-export const useCompleteModal = () => {
+export const useCompleteDialog = () => {
     const notification = useRecoilValue(notificationsState);
     const notifications = useNotifications();
     const router = useRouter();

@@ -3,18 +3,15 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
+from constants import env
+
 AWSMAIL_HOST = "email-smtp.ap-northeast-3.amazonaws.com"
 AWSMAIL_PORT = 587
+AWSMAIL_ID = env.SMTP_USERNAME
+AWSMAIL_PASSWORD = env.SMTP_PASSWORD
 
-data = [line.split(',') for line in open(
-       'funcs/cryptopics-email-credentials.csv', 'r')]
-
-AWSMAIL_ID = data[1][1]
-AWSMAIL_PASSWORD = data[1][2]
-
-FROM_NAME = "ふじシステム"
-FROM_EMAIL = "fujitomo375@gmail.com"
-
+FROM_NAME = env.FROM_NAME
+FROM_EMAIL = env.FROM_EMAIL
 
 def send_mail_aws(
     subject: str,
