@@ -54,13 +54,14 @@ export default function TodoDetail() {
     createChangeHandler,
     title,
     handleBlur,
-    isFocused,
+    isDescriptionFocused,
     hasContent,
     handleFocus,
     tmpFiles,
-    isTitleValue
+    todoId,
+    isTitleFocused,
+    setTitleIsFocused
   } = useTodoDetail();
-
 
   const textFieldStyles = {
     '& .MuiInput-underline:after': {
@@ -151,6 +152,7 @@ export default function TodoDetail() {
         <Typography className="text-4xl py-10 text-center">
           TODO{title}
         </Typography>
+        <TextField type="hidden" {...register("todoId")} value={todoId} />
         <Box className=" w-[95%]  mx-auto pt-2 overflow-y-auto h-[53vh]">
           <Box
             className="w-11/12 flex flex-col gap-4  h-[720px]">
@@ -163,18 +165,19 @@ export default function TodoDetail() {
               type="title"
               {...register("title")}
               error={"title" in errors}
-              InputLabelProps={{ shrink: isTitleValue }}
+              InputLabelProps={{ shrink: !!getValues("title") || isTitleFocused }}
               helperText={
                 <Box component="span" className="text-base text-red-500">
                   {errors.title?.message}
                 </Box>
               }
+              onFocus={() => setTitleIsFocused(true)}
+              onBlur={() => setTitleIsFocused(false)}
               disabled={notifications.isLoading()}
             />
-
             <Box className="h-20 relative h-auto">
               <label
-                className={`bg-white absolute left-2 top-4 w-10 transition-all duration-300 ease-in-out ${isFocused ? 'transform -translate-y-7 scale-75 text-green-700' :
+                className={`bg-white absolute left-2 top-4 w-10 transition-all duration-300 ease-in-out ${isDescriptionFocused ? 'transform -translate-y-7 scale-75 text-green-700' :
                   hasContent ? 'transform -translate-y-7 scale-75' :
                     'transform translate-y-0'
                   }`}
@@ -286,7 +289,7 @@ export default function TodoDetail() {
                   '& label.Mui-focused': {
                     color: errors.dateStart?.message ? 'red' : 'green', // フォーカス時のラベルの色
                   },
-                  ...(errors.dateStart?.message && {
+                  ...(errors.currentState?.message && {
                     '& .MuiInput-underline:before': {
                       borderBottomColor: 'red', // 通常時の下線の色
                     },

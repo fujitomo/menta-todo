@@ -1,6 +1,6 @@
 import os
 import re
-from typing import List
+from typing import List, Tuple
 from urllib.parse import urlparse
 import boto3
 
@@ -85,43 +85,50 @@ class TodoFuncs:
                         user_id: str,
                         todo_id: str,
                         old_attachment_list: List[str] = None,
-                        old_hash_list: List[str] = None) -> List:
-
+                        old_hash_list: List[str] = None) -> Tuple[List, List]:
         file_manager = FileManager()
-        attachments_up = None
-        attachments_hash = None
         attachments_up = []
         attachments_hash = []
-        if attachments:
-            count = 0
-            for attachment in attachments:
+
+        def upload_file(attachment):
+            try:
                 attachment.file.seek(0)
                 attachment_bytes = attachment.file.read()
                 hash = FileManager.hash_binary_to_md5(attachment_bytes)
-                if old_hash_list:  # 更新時
-                    # 旧ファイルを削除
-                    if old_hash_list[count] != hash:
+                attachment_up = file_manager.upload(
+                    attachment_bytes, f"{user_id}/{SETTINGS.FOLDER_TODO_ATTACHMENTS}/{todo_id}"
+                )
+                return attachment_up, hash
+            except Exception as e:
+                # エラーロギングや適切なエラー処理をここに追加
+                pass
+
+        if attachments:
+            for count, attachment in enumerate(attachments):
+                attachment_up, hash = upload_file(attachment)
+                if old_hash_list and count < len(old_hash_list) and old_hash_list[count] != hash:
+                    # 旧ファイルの削除
+                    try:
                         url = urlparse(old_attachment_list[count])
                         filename = os.path.basename(url.path)
                         file_manager.delete(f"{user_id}/{SETTINGS.FOLDER_TODO_ATTACHMENTS}/{todo_id}", filename)
-                        attachment_up = file_manager.upload(
-                                                attachment_bytes,
-                                                f"{user_id}/{SETTINGS.FOLDER_TODO_ATTACHMENTS}/{todo_id}")
-                else:  # 新規登録時
-                    attachment_up = file_manager.upload(
-                            attachment_bytes,
-                            f"{user_id}/{SETTINGS.FOLDER_TODO_ATTACHMENTS}/{todo_id}"
-                        )
+                    except Exception as e:
+                        # エラーロギングや適切なエラー処理をここに追加
+                        pass
+
                 attachments_up.append(attachment_up)
                 attachments_hash.append(hash)
-                count += 1
-        else:
-            # 旧ファイルをすべて削除
-            if old_attachment_list:
-                for old_objects in zip(old_attachment_list, old_hash_list):
-                    url = urlparse(old_objects[0])
+
+        elif old_attachment_list:
+            # 旧ファイルの削除
+            for old_attachment in old_attachment_list:
+                try:
+                    url = urlparse(old_attachment)
                     filename = os.path.basename(url.path)
                     file_manager.delete(f"{user_id}/{SETTINGS.FOLDER_TODO_ATTACHMENTS}/{todo_id}", filename)
+                except Exception as e:
+                    # エラーロギングや適切なエラー処理をここに追加
+                    pass
 
         return attachments_up, attachments_hash
 

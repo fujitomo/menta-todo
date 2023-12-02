@@ -20,16 +20,16 @@ export const useTodoDetail = () => {
   const [state, setState] = useState<{ label: string; value: string } | null>({ label: TodoState.WAITING, value: TodoState.WAITING });
   const transition = useRecoilValue(transitionTodoDetail);
   // 日付範囲の状態を管理
-  const [dateStart, setDateStart] = useState<Date | undefined>();
+  const [dateStart, setDateStart] = useState<Date | null>();
   const [dateEnd, setDateEnd] = useState<Date | undefined>();
   const [openDialog, setOpenDialog] = useState(false);
   const [title, setTitle] = useState("");
   const [tmpFiles, setTmpFiles] = useState<File[] | undefined>();
   const router = useRouter();
-  const [isFocused, setIsFocused] = useState(false);
+  const [isDescriptionFocused, setDescriptionFocused] = useState(false);
   const [hasContent, setHasContent] = useState(false);
-  const [isTitleValue, setTitleValue] = useState(false);
-  const [todoid, setTodoId] = useState("");
+  const [todoId, setTodoId] = useState("");
+  const [isTitleFocused, setTitleIsFocused] = useState(false);
 
   // バリデーションルール
   const schema = yup.object().shape({
@@ -41,9 +41,11 @@ export const useTodoDetail = () => {
       .required("必須です。"),
     dateStart: yup
       .date()
+      .nullable() // null または undefined を許可
       .typeError("有効な日付を入力してください。"), // 無効な日付の場合のエラーメッセージ
     dateEnd: yup
       .date()
+      .nullable() // null または undefined を許可
       .typeError("有効な日付を入力してください。") // 無効な日付の場合のエラーメッセージ
       .when("dateStart", (dateStart, schema) => {
         // dateStart が有効な日付である場合のみ、min メソッドを適用
@@ -84,9 +86,9 @@ export const useTodoDetail = () => {
     getOptionLabel: (option: any) => option.label,
   };
 
-  const handleFocus = () => setIsFocused(true);
+  const handleFocus = () => setDescriptionFocused(true);
   const handleBlur = (e: { target: { value: string | any[]; }; }) => {
-    setIsFocused(false);
+    setDescriptionFocused(false);
     setHasContent(e.target.value.length > 0);
   };
 
@@ -130,12 +132,13 @@ export const useTodoDetail = () => {
         handleTagChange(todoDetail.tags || []);
         handleBlur({ target: { value: todoDetail.description ?? "" } });
         setDateStart(todoDetail.dateStart ? new Date(todoDetail.dateStart) : undefined);
-        handleDateChange("dateStart", todoDetail.dateStart ?? "");
+        handleDateChange("dateStart", todoDetail.dateStart ?? undefined);
+
         setDateEnd(todoDetail.dateEnd ? new Date(todoDetail.dateEnd) : undefined);
-        handleDateChange("dateEnd", todoDetail.dateEnd ?? "");
+        console.log("DateEnd", dateEnd)
+        handleDateChange("dateEnd", todoDetail.dateEnd ?? undefined);
         handleValueChange("currentState", todoDetail.currentState ?? "");
         setState({ label: todoDetail.currentState ?? "", value: todoDetail.currentState ?? "" });
-        setTitleValue(true);
         setTodoId(todoDetail.todoId ?? "");
         handleValueChange("color", todoDetail.color);
 
@@ -251,12 +254,14 @@ export const useTodoDetail = () => {
     createChangeHandler,
     title,
     handleBlur,
-    isFocused,
     hasContent,
     handleFocus,
     setTmpFiles,
     tmpFiles,
-    isTitleValue
+    todoId,
+    isTitleFocused,
+    setTitleIsFocused,
+    isDescriptionFocused
   };
 };
 
