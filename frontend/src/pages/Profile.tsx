@@ -51,13 +51,10 @@ export default function Profile(): JSX.Element {
 
 
   return (
-    <MainLayout>
       <Box className="bg-white mt-10 w-11/12 mx-auto pl-10 py-10 text-left">
         <Typography className="text-4xl text-center">プロフィール登録</Typography>
 
       </Box>
-
-    </MainLayout >
   );
 }
 

@@ -2,14 +2,23 @@ import os
 import re
 from typing import List
 from urllib.parse import urlparse
+import boto3
 
 from constants.models import TodoRequestModel
 from constants.other import SETTINGS, TODO, TODO_STATE
-from fastapi import UploadFile
 from funcs.upload_file import FileManager
-
+from fastapi import UploadFile
+from botocore.exceptions import ClientError
 from .exception_funcs import ExceptionFuncs
 
+from datetime import datetime, timedelta
+
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import padding
+from botocore.signers import CloudFrontSigner
+from constants import env
 
 class TodoFuncs:
 
@@ -18,7 +27,6 @@ class TodoFuncs:
         attachments: List[UploadFile],
         todo_model: TodoRequestModel
     ) -> str:
-
         if attachments:
             if len(attachments) > 10:
                 ExceptionFuncs.raise_bad_request("アップロードファイルが5つより多いです。")
@@ -87,6 +95,7 @@ class TodoFuncs:
         if attachments:
             count = 0
             for attachment in attachments:
+                attachment.file.seek(0)
                 attachment_bytes = attachment.file.read()
                 hash = FileManager.hash_binary_to_md5(attachment_bytes)
                 if old_hash_list:  # 更新時
@@ -121,3 +130,23 @@ class TodoFuncs:
         file_manager = FileManager()
         is_delete = file_manager.deleteS3Folder(f"{user_id}/{SETTINGS.FOLDER_TODO_ATTACHMENTS}/{todo_id}")
         return is_delete
+
+
+    @staticmethod
+    def rsa_signer(message):
+        with open(env.AWS_CLOUDFRONT_PEM, 'rb') as key_file:
+            private_key = serialization.load_pem_private_key(
+                key_file.read(),
+                password=None,
+                backend=default_backend()
+            )
+        return private_key.sign(message, padding.PKCS1v15(), hashes.SHA1())
+
+    @staticmethod
+    def create_signed_url(url):
+        key_id = env.AWS_CLOUDFRONT_URL
+        expire_date = datetime.utcnow() + timedelta(minutes=60)
+        cloudfront_signer = CloudFrontSigner(key_id,TodoFuncs.rsa_signer)
+        signed_url = cloudfront_signer.generate_presigned_url(
+            url, date_less_than=expire_date)
+        return signed_url

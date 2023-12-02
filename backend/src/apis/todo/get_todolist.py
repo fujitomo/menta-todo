@@ -1,5 +1,5 @@
 
-from typing import Optional
+from typing import List, Optional
 
 from constants import BasicResponses, Endpoints, Tags
 from constants.models import TodoListRequestModel, TodoResponsModel
@@ -11,12 +11,14 @@ from fastapi_jwt_auth import AuthJWT
 from funcs import AuthFuncs, DbFuncs, ExceptionFuncs, UtilFuncs
 from funcs.util_funcs import UtilFuncs
 from pydantic import BaseModel
+from funcs.todo_funcs import TodoFuncs
+from constants import env
 
 router = APIRouter()
 
 ENDPOINT = Endpoints.Todo.get_todolist
 TAGS = [Tags.todo]
-RESPONSES = BasicResponses.set_success_model(TodoResponsModel)
+RESPONSES = BasicResponses.set_success_model(List[TodoResponsModel])
 
 bearer_scheme = HTTPBearer()
 
@@ -61,7 +63,6 @@ async def endpoint(
         search[TODO.DATE_END] = {"$lte": work_date}
 
 
-    print(request_model.tags_existence)
     if request_model.tags_existence is not None:
         if request_model.tags_existence:
             print(request_model.tag)
@@ -101,7 +102,24 @@ async def endpoint(
                      {TODO.ATTACHMENTS_HASH: 0,
                       "_id": 0}).to_list(length=None)
 
-    if not todolist_data:
-        ExceptionFuncs.raise_not_found(ERROR_MESSAGE.NOT_FOUND)
+    processed_attachments = []
+    for item in todolist_data:
+        attachments = item[TODO.ATTACHMENTS]
 
+        print("attachments", attachments)
+        if attachments:
+            for attachment in attachments:
+                if attachment:
+                    print("attachment", attachment)
+                    processed_attachments.append(TodoFuncs.create_signed_url(attachment))
+                else:
+                    print("attachment", attachment)
+                    processed_attachments.append("")
+
+
+            item[TODO.ATTACHMENTS] = processed_attachments
+
+    for todo in todolist_data:
+        if not isinstance(todo.get('attachments', []), list):
+            todo['attachments'] = [todo['attachments']]
     return [TodoResponsModel(**todo) for todo in todolist_data]

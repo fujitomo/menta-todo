@@ -38,23 +38,31 @@ const handleError = (error: any): AxiosResponse => {
     };
   };
 
-  const makeRequest = async (method: 'get' | 'post', config: AxiosRequestConfig): Promise<AxiosResponse> => {
+  const makeRequest = async (method: 'get' | 'post' | 'delete', config: AxiosRequestConfig): Promise<AxiosResponse> => {
     try {
-      const response = await axiosInstance[method](config.url!, config.data, {
-        headers: config.headers,
-        params: method === 'get' ? config.params : undefined,
-      });
-      return {
-        statusCode: response.status,
-        payload: response.data,
-        headers: response,
-      };
+        let response;
+        if (method === 'get' || method === 'delete') {
+            response = await axiosInstance[method](config.url!, {
+                headers: config.headers,
+                params: config.params
+            });
+        } else {
+            response = await axiosInstance[method](config.url!, config.data, {
+                headers: config.headers,
+            });
+        }
+        return {
+            statusCode: response.status,
+            payload: response.data,
+            headers: response.headers,
+        };
     } catch (error: any) {
-      return handleError(error);
+        return handleError(error);
     }
-  };
+};
 
-  export const axiosService = {
+export const axiosService = {
     post: (config: AxiosRequestConfig) => makeRequest('post', config),
     get: (config: AxiosRequestConfig) => makeRequest('get', config),
-  };
+    delete: (config: AxiosRequestConfig) => makeRequest('delete', config), // 追加したdeleteメソッド
+};

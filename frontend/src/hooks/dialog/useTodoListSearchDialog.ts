@@ -1,16 +1,25 @@
-import { useState } from "react";
+import { transitionTodoDetail } from './../../recoilAtoms/recoilState';
+import { use, useState } from "react";
 import { useForm } from "react-hook-form";
 import dayjs from "dayjs";
 import Cookies from "js-cookie";
 import { useAPI } from "../useAPI";
 import { EXISTENCE_OPTIONS, STATE_ATTACHMENTS } from "@/utils/utils";
 import { DateRange } from "@mui/x-date-pickers-pro";
-import { SearchConditions } from "@/types/todos";
+
 import { useNotifications } from "../useNotifications";
+import { useRecoilState } from "recoil";
+import { SearchConditions, searchConditionsState } from "@/recoilAtoms/recoilState";
 
 export const useTodoListSearchDialog = () => {
+
   // モーダルの表示状態を管理
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+
+  const [searchConditions, setSearchConditions] = useRecoilState(searchConditionsState);
+  // const updateSearchConditions = (newConditions: SearchConditions | ((currVal: SearchConditions) => SearchConditions)) => {
+  //   setSearchConditions(newConditions);
+  // };
 
   // API関連の処理を行うカスタムフック
   const { getTodoList } = useAPI();
@@ -26,14 +35,14 @@ export const useTodoListSearchDialog = () => {
     formState: { errors },
   } = useForm<SearchConditions>({
     defaultValues: {
-      title: null,
-      description: null,
-      startDateRange: [null, null],
-      completeDateRange: [null, null],
-      tagExists: null,
-      tagMatch: null,
-      status: null,
-      attachmentsExists: null,
+      title: searchConditions.title,
+      description: searchConditions.description,
+      dateStartRange: [searchConditions.dateStartRange[0], searchConditions.dateStartRange[1]],
+      dateEndRange: [searchConditions.dateEndRange[0], searchConditions.dateEndRange[1]],
+      tagExists: searchConditions.tagExists,
+      tags: searchConditions.tags,
+      currentState: searchConditions.currentState,
+      attachmentsExists: searchConditions.attachmentsExists,
     },
   });
 
@@ -56,8 +65,8 @@ export const useTodoListSearchDialog = () => {
   };
 
   // 日付範囲の状態を管理
-  const [startDateRange, setStartDateRange] = useState<DateRange<dayjs.Dayjs>>([null, null]);
-  const [completeDateRange, setCompleteDateRange] = useState<DateRange<dayjs.Dayjs>>([null, null]);
+  const [dateStartRange, setDateStartRange] = useState<DateRange<dayjs.Dayjs>>([null, null]);
+  const [dateEndRange, setDateEndRange] = useState<DateRange<dayjs.Dayjs>>([null, null]);
 
   // タグの有無、添付ファイルの有無、ステータスの状態を管理
   const [tagExists, setTagExists] = useState<{ label: string; value: boolean | undefined } | null>(null);
@@ -74,14 +83,16 @@ export const useTodoListSearchDialog = () => {
     return isSearchModalOpen;
   };
 
-  // 検索を実行する関数
-  const handleSearch = async (onClose: () => void) => {
+  //フォーム送信時の処理
+  const onSubmit = async (onClose: () => void) => {
     try {
-      console.log(getValues());
+      console.log("searchConditions", searchConditions);
+      setSearchConditions(getValues());
       const accessToken = Cookies.get("accessToken");
       const refreshToken = Cookies.get("refreshToken");
       // APIエンドポイントからデータを取得
       await getTodoList(accessToken, refreshToken, getValues());
+      console.log(searchConditions);
     } catch (error) {
       console.error('カード情報の取得に失敗しました:', error);
     }
@@ -93,17 +104,17 @@ export const useTodoListSearchDialog = () => {
   const handleTagChange = (newValue: string[]) => {
     if (newValue.length <= 10) {
       setSelectedTags(newValue);
-      setValue("tagMatch", newValue);
+      setValue("tags", newValue);
       setErrorText(null);
     } else {
       setSelectedTags(newValue.slice(0, 10));
-      setValue("tagMatch", newValue.slice(0, 10));
+      setValue("tags", newValue.slice(0, 10));
       setErrorText("最大10個まで選択できます。");
     }
   };
 
   // 値の変更を処理する関数
-  const handleValueChange = (field: any, event: React.SyntheticEvent, value: any) => {
+  const handleValueChange = (field: any, _event: React.SyntheticEvent, value: any) => {
     if (value !== undefined && value !== null) {
       setValue(field, value.value);
     } else {
@@ -119,13 +130,25 @@ export const useTodoListSearchDialog = () => {
   // フォームのリセットを行う関数
   const handleClear = () => {
     reset();
-    setStartDateRange([null, null]);
-    setCompleteDateRange([null, null]);
+    setDateStartRange([null, null]);
+    setDateEndRange([null, null]);
     setSelectedTags([]);
     setTagExists(null);
     setAttachmentsExists(null);
     setState(null);
     setErrorText(null);
+
+    // setSearchConditions({
+    //   title: null,
+    //   description: null,
+    //   dateStartRange: [null, null],
+    //   dateEndRange: [null, null],
+    //   tagExists: null,
+    //   tags: null,
+    //   currentState: null,
+    //   attachmentsExists: null
+    // });
+
   };
 
   return {
@@ -136,9 +159,8 @@ export const useTodoListSearchDialog = () => {
     errors,
     setValue,
     getValues,
-    watch,
     reset,
-    handleSearch,
+    onSubmit,
     handleTagChange,
     isTagsActive,
     selectedTags,
@@ -150,16 +172,17 @@ export const useTodoListSearchDialog = () => {
     handleClear,
     stateProps,
     existenceProps,
-    completeDateRange,
+    dateEndRange,
     tagExists,
     attachmentsExists,
     setTagExists,
     setAttachmentsExists,
     state,
     setState,
-    setStartDateRange,
-    startDateRange,
-    setCompleteDateRange,
-    notifications
+    setDateStartRange,
+    dateStartRange,
+    setDateEndRange,
+    notifications,
+    searchConditions
   };
 };

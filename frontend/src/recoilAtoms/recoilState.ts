@@ -1,3 +1,4 @@
+import dayjs from 'dayjs';
 import { atom } from 'recoil';
 
 export interface Notification  {
@@ -41,7 +42,6 @@ export interface TodoCard {
   currentState: TodoState,
   completedDate: Date,
   createDate: Date
-
 }
 
 export enum TodoState {
@@ -52,9 +52,55 @@ export enum TodoState {
 }
 
 export const todoListState = atom<TodoCard[]>({
-  key: 'todoState',
+  key: 'todoList',
   default: [
   ],
+});
+
+// 検索条件のインターフェース
+export interface SearchConditions {
+  title: string | null;
+  description: string | null;
+  dateStartRange: [dayjs.Dayjs | null, dayjs.Dayjs | null];
+  dateEndRange: [dayjs.Dayjs | null, dayjs.Dayjs | null];
+  tagExists: boolean | null;
+  tags: string[] | null;
+  currentState: TodoState | null;
+  attachmentsExists: boolean | null;
+}
+
+// 検索条件のためのRecoil State
+export const searchConditionsState = atom<SearchConditions>({
+  key: 'searchConditionsState',
+  default: {
+    title: null,
+    description: null,
+    dateStartRange: [null, null],
+    dateEndRange: [null, null],
+    tagExists: null,
+    tags: null,
+    currentState: null,
+    attachmentsExists: null,
+  },
+});
+
+export enum  Transition {
+  CREATE = "登録",
+  UPDATE = "更新",
+}
+
+
+export interface TransitionTodoDetail {
+  transitionTodoDetail: Transition | null;
+  todoId: string | null;
+}
+
+export const transitionTodoDetail = atom<TransitionTodoDetail>({
+  key: 'transitionTodoDetail',
+  default: {
+    transitionTodoDetail: null,
+    todoId: null,
+  },
 });
 
 

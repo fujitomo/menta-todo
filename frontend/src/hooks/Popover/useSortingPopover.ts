@@ -7,7 +7,7 @@ export const useSortingPopover = () => {
 
   const currentTodoList = useRecoilValue(todoListState);
   const setTodoListState = useSetRecoilState(todoListState);
-  const sortTodoListCompleteDate = () => {
+  const sortTodoListDateEnd = () => {
       const sortedTodoList = [...currentTodoList].sort((a, b) => {
           const dateA = new Date(a.dateEnd).getTime();
           const dateB = new Date(b.dateEnd).getTime();
@@ -30,7 +30,7 @@ export const useSortingPopover = () => {
   function handleItemClick(value: string, onClose: () => void) {
     switch (value) {
       case 'sortDate':
-        sortTodoListCompleteDate();
+        sortTodoListDateEnd();
         break;
       case 'sortTitle':
         sortTodoListTitle();

@@ -23,6 +23,8 @@ class EnvModel(BaseModel):
     S3_BUCKET_NAME: str
     AWS_CLOUDFRONT_URL: str
     AWS_REGION_NAME: str
+    AWS_CLOUDFRONT_KEY: str
+    AWS_CLOUDFRONT_PEM: str
 
 
 env = EnvModel(**os.environ)

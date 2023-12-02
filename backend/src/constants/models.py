@@ -58,7 +58,7 @@ class TodoResponsModel(BaseModel):
     date_start: Optional[date] = None
     date_end: Optional[date] = None
     tags: Optional[List[str]] = None
-    attachments: Optional[List[str]] = None
+    attachments: Optional[List[Optional[str]]] = None
     color: Optional[str] = None
     current_state: Optional[TODO_STATE] = None
     completed_date: Optional[date] = None

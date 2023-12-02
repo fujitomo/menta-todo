@@ -10,7 +10,7 @@ from funcs import AuthFuncs, DbFuncs, ExceptionFuncs, UtilFuncs
 from funcs.todo_funcs import TodoFuncs
 from funcs.util_funcs import UtilFuncs
 from pydantic import BaseModel
-
+from fastapi import UploadFile
 
 class Response(BaseModel):
     message: str
@@ -31,24 +31,26 @@ bearer_scheme = HTTPBearer()
 # Authorizeはswagger用
 async def endpoint(
     request: Request,
-    attachments: Optional[List[bytes]] = File(default=None),
+    attachments: Optional[List[UploadFile]] = File(default=None),
     request_model: TodoRequestModel = Form(...),
     db=Depends(DbFuncs.get_database),
     Authorize: AuthJWT = Depends()
 ):
+    print("attachments",attachments)
     # DBのコレクションを定義
     collection = db[COLLLECTION.TODO]
     token_info: AuthFuncs.TokenPayload = request.state.token_info
-    TodoFuncs.check_tododata(attachments, request_model)
+    await TodoFuncs.check_tododata(attachments, request_model)
     todo_id = UtilFuncs.get_uniqueid()
     attachments_up, attachments_hash = TodoFuncs.get_attachments(attachments,
                                                                  token_info.user_id,
                                                                  todo_id)
 
+    print("request_model.date_start",request_model.date_start)
     date_start = UtilFuncs.get_date_isoformat(request_model.date_start)
     date_end = UtilFuncs.get_date_isoformat(request_model.date_end)
 
-
+    state = request_model.current_state.value if request_model.current_state is not None else None
     # TODO TODOクラスからの値取得がtitle以降できない(Noneになる)
     result = await collection.insert_one(
             {
@@ -61,7 +63,7 @@ async def endpoint(
                 TODO.DATE_START: date_start,
                 TODO.DATE_END: date_end,
                 TODO.TAGS: request_model.tags,
-                TODO.CURRENT_STATE: request_model.current_state.value,
+                TODO.CURRENT_STATE: state,
                 TODO.COLOR: request_model.color,
                 TODO.DELETE_DATE: None,
                 TODO.CREATE_DATE: UtilFuncs.get_now_isodatetime()

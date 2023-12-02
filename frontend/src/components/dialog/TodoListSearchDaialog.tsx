@@ -20,7 +20,7 @@ export const TodoListSearchModal: React.FC<TodoListSearchModalProps> = ({ open, 
   const {
     register,
     errors,
-    handleSearch,
+    onSubmit,
     handleTagChange,
     isTagsActive,
     selectedTags,
@@ -33,14 +33,14 @@ export const TodoListSearchModal: React.FC<TodoListSearchModalProps> = ({ open, 
     state,
     stateProps,
     setState,
-    setStartDateRange,
-    startDateRange,
+    setDateStartRange,
+    dateStartRange,
     handleDateChange,
-    completeDateRange,
-    setCompleteDateRange,
+    dateEndRange,
+    setDateEndRange,
     handleClear,
     attachmentsExists,
-    notifications
+    notifications,
   } = useTodoListSearchDialog();
 
   const BUTTON_CLASSNAME = "pointer-events-auto bg-[#B29649] hover:bg-[#B29649] font-base text-black font-bold rounded";
@@ -116,7 +116,7 @@ export const TodoListSearchModal: React.FC<TodoListSearchModalProps> = ({ open, 
               disabled={!isTagsActive || notifications.isLoading()} // 真偽値を確認
               id="tags-outlined"
               className="w-[1164px] ml-11 h-30"
-              options={TAGS.map(option => option.name)}
+              // options={TAGS.map(option => option.name)}
               value={selectedTags}
               renderInput={(params) => (
                 <TextField
@@ -125,13 +125,11 @@ export const TodoListSearchModal: React.FC<TodoListSearchModalProps> = ({ open, 
                   label="タグ（最大10個）"
                   placeholder="タグを選択または入力"
                   error={!!errorText}
-                  helperText={errorText}
-                />
+                  helperText={errorText} />
               )}
               onChange={(_event, newValue) => {
                 handleTagChange(newValue);
-              }}
-            />
+              } } options={[]}            />
           </Box>
 
           <Box className="mt-1"></Box>
@@ -179,11 +177,11 @@ export const TodoListSearchModal: React.FC<TodoListSearchModalProps> = ({ open, 
               <DateRangePicker
                 className="w-[500px]"
                 localeText={{ start: '開始日（開始）', end: '開始日（終了）' }}
-                value={startDateRange}
+                value={dateStartRange}
                 onChange={(newValue) => {
                   console.log(newValue);
-                  setStartDateRange(newValue);
-                  handleDateChange("startDateRange", newValue);
+                  setDateStartRange(newValue);
+                  handleDateChange("dateStartRange", newValue);
                 }}
                 disabled={notifications.isLoading()}
               />
@@ -192,11 +190,11 @@ export const TodoListSearchModal: React.FC<TodoListSearchModalProps> = ({ open, 
               <DateRangePicker
                 className="w-[500px]"
                 localeText={{ start: '完了日（開始）', end: '完了日（終了）' }}
-                value={completeDateRange}
+                value={dateEndRange}
                 onChange={(newValue) => {
                   console.log(newValue);
-                  setCompleteDateRange(newValue);
-                  handleDateChange("completeDateRange", newValue);
+                  setDateEndRange(newValue);
+                  handleDateChange("dateEndRange", newValue);
                 }}
                 disabled={notifications.isLoading()}
               />
@@ -209,7 +207,7 @@ export const TodoListSearchModal: React.FC<TodoListSearchModalProps> = ({ open, 
           <LoadingButton
             className={BUTTON_CLASSNAME}
             onClick={() => {
-              handleSearch(onClose);
+              onSubmit(onClose);
             }}
             loading={notifications.isLoading()}
           >

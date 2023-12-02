@@ -1,4 +1,3 @@
-import MainLayout from "@/components/pages/MainLayout";
 import { Box, TextField, Typography } from "@mui/material";
 import Link from "next/link";
 import React, {  } from "react";
@@ -16,7 +15,6 @@ export default function Login() {
   } = useLogin();
 
   return (
-    <MainLayout>
       <Box className="bg-white mt-20 w-2/3 text-center mx-auto py-10">
         <Typography className="text-4xl mb-10">
           ログイン
@@ -96,6 +94,5 @@ export default function Login() {
           </Grid> */}
         </Box>
       </Box>
-    </MainLayout>
   );
 }

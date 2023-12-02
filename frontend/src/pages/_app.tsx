@@ -7,6 +7,7 @@ import createEmotionCache from "../createEmotionCache";
 import "../styles/globals.css";
 import theme from "../theme";
 import { RecoilRoot } from "recoil"
+import MainLayout from "@/components/pages/MainLayout";
 
 const clientSideEmotionCache = createEmotionCache();
 interface MyAppProps extends AppProps {
@@ -23,7 +24,9 @@ function MyApp(props: MyAppProps) {
         </Head>
         <ThemeProvider theme={theme}>
           <CssBaseline />
-          <Component {...pageProps} />
+          <MainLayout>
+            <Component {...pageProps} />
+          </MainLayout>
         </ThemeProvider>
       </CacheProvider>
     </RecoilRoot>

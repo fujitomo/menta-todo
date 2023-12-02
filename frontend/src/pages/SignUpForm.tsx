@@ -23,7 +23,6 @@ export default function SignUpForm() {
   } = useSignUpForm();
 
   return (
-    <MainLayout>
       <Box className="bg-white mt-20 w-2/3 text-center mx-auto py-10">
         <Typography className="text-4xl mb-10">新規登録</Typography>
         <Box
@@ -94,7 +93,6 @@ export default function SignUpForm() {
           <CompleteDialog />
         </Box>
       </Box>
-    </MainLayout >
   );
 
 
