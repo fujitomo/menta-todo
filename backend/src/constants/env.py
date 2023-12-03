@@ -25,6 +25,7 @@ class EnvModel(BaseModel):
     AWS_REGION_NAME: str
     AWS_CLOUDFRONT_KEY: str
     AWS_CLOUDFRONT_PEM: str
+    AWS_CLOUDFRONT_KEY: str
 
 
 env = EnvModel(**os.environ)

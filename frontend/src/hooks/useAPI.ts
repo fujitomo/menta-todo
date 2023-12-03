@@ -462,7 +462,7 @@ export function useAPI() {
         refreshToken: string | undefined,
         todoId: string
     ) => {
-        const id = 'getTodo';
+        const id = 'getTodoDatail';
         try {
             notifications.open({ id: id, state: State.PROSSING });
             const headers = {
@@ -482,6 +482,7 @@ export function useAPI() {
                     Cookies.set('accessToken', payload.accesstoken);
                     //添付ファイルのダウンロード
                     const attachments = payload.attachments; // これは添付ファイルのURLが格納された配列です
+                    console.log(payload, "payload")
                     const downloadedFiles = await downloadAllAttachments(attachments);
 
                     const todoDetail: TodoDetail = {

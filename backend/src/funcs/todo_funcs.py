@@ -151,9 +151,11 @@ class TodoFuncs:
 
     @staticmethod
     def create_signed_url(url):
-        key_id = env.AWS_CLOUDFRONT_URL
-        expire_date = datetime.utcnow() + timedelta(minutes=60)
+        key_id = env.AWS_CLOUDFRONT_KEY
+        expire_date = datetime.utcnow() + timedelta(minutes=3)
         cloudfront_signer = CloudFrontSigner(key_id,TodoFuncs.rsa_signer)
         signed_url = cloudfront_signer.generate_presigned_url(
             url, date_less_than=expire_date)
+        print("url",url)
+        print("signed_url", signed_url)
         return signed_url

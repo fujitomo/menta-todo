@@ -1,4 +1,5 @@
 
+from funcs.todo_funcs import TodoFuncs
 from constants import BasicResponses, Endpoints, Tags
 from constants.models import TodoResponsModel
 from constants.other import COLLLECTION, ERROR_MESSAGE, TODO
@@ -46,8 +47,20 @@ async def endpoint(
                       "_id": 0}
     )
 
+    processed_attachments = []
+    attachments = todo_data[TODO.ATTACHMENTS]
+    print("attachments", attachments)
+    if attachments:
+        for attachment in attachments:
+            if attachment:
+                processed_attachments.append(TodoFuncs.create_signed_url(attachment))
+            else:
+                processed_attachments.append("")
+
+
+        todo_data[TODO.ATTACHMENTS] = processed_attachments
+
     if not todo_data:
         ExceptionFuncs.raise_not_found(ERROR_MESSAGE.NOT_FOUND)
 
-    print(todo_data)
     return TodoResponsModel(**todo_data)
