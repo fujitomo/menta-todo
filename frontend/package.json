@@ -42,6 +42,7 @@
     "react-dom": "18.2.0",
     "react-hook-form": "^7.43.9",
     "react-query": "^3.39.3",
+    "react-swipeable-views": "^0.14.0",
     "recoil": "^0.7.7",
     "recoil-persist": "^5.1.0",
     "styled-components": "^5.3.11",
@@ -53,6 +54,7 @@
     "@types/cookie": "^0.5.1",
     "@types/js-cookie": "^3.0.3",
     "@types/node": "^20.1.0",
-    "@types/react-color": "^3.0.9"
+    "@types/react-color": "^3.0.9",
+    "@types/react-swipeable-views": "^0.13.5"
   }
 }

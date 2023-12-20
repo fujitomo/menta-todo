@@ -179,7 +179,6 @@ export const TodoListSearchModal: React.FC<TodoListSearchModalProps> = ({ open, 
                 localeText={{ start: '開始日（開始）', end: '開始日（終了）' }}
                 value={dateStartRange}
                 onChange={(newValue) => {
-                  console.log(newValue);
                   setDateStartRange(newValue);
                   handleDateChange("dateStartRange", newValue);
                 }}
@@ -192,7 +191,6 @@ export const TodoListSearchModal: React.FC<TodoListSearchModalProps> = ({ open, 
                 localeText={{ start: '完了日（開始）', end: '完了日（終了）' }}
                 value={dateEndRange}
                 onChange={(newValue) => {
-                  console.log(newValue);
                   setDateEndRange(newValue);
                   handleDateChange("dateEndRange", newValue);
                 }}

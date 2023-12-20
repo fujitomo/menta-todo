@@ -136,7 +136,6 @@ class AuthFuncs:
         if number_verification[0:8] != AuthFuncs.get_new_number()[0:8]:
             return AuthFuncs.get_new_number()
 
-        print(int(number_verification[4:8]))
         if int(number_verification[8:9]) + 1 > int(REGISTRANT.MAX_NUMBER_VERIFICATION):
             ExceptionFuncs.raise_unauthorized(ERROR_MESSAGE.ONEPASSWORD_INSPECTION)
         num = number_verification[8:9]

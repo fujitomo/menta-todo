@@ -36,7 +36,6 @@ async def endpoint(
     db=Depends(DbFuncs.get_database),
     Authorize: AuthJWT = Depends()
 ):
-    print("attachments",attachments)
     # DBのコレクションを定義
     collection = db[COLLLECTION.TODO]
     token_info: AuthFuncs.TokenPayload = request.state.token_info
@@ -46,7 +45,6 @@ async def endpoint(
                                                                  token_info.user_id,
                                                                  todo_id)
 
-    print("request_model.date_start",request_model.date_start)
     date_start = UtilFuncs.get_date_isoformat(request_model.date_start)
     date_end = UtilFuncs.get_date_isoformat(request_model.date_end)
 

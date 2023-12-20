@@ -32,7 +32,7 @@ export const SortingPopover: React.FC<SortingPopoverProps> = ({ anchorEl, onClos
       <Typography variant="h6" className="text-gray-300 ml-4">並び替え</Typography>
       <List>
         {sortingOptions.map((option) => (
-          <ListItem button key={option.value} onClick={() => handleItemClick(option.value, onClose)}>
+          <ListItem key={option.value} onClick={() => handleItemClick(option.value, onClose)}>
             <ListItemText primary={option.label} />
           </ListItem>
         ))}

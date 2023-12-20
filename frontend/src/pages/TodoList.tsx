@@ -1,5 +1,4 @@
 
-import MainLayout from "@/components/pages/MainLayout";
 import { checkLogin, redirectToLogin } from "@/utils/utils";
 import { Box, Button, Fab, Grid, Typography } from "@mui/material";
 import Link from 'next/link';
@@ -24,9 +23,7 @@ export default function TodoList() {
     handleSortButtonClick,
     handleCreateLink,
     openDialog,
-    setOpenDialog,
     handleDialogClose,
-    handleConfirmAction,
     onDelete,
     handleDialogOpen,
     handleUpdateLink
@@ -41,7 +38,7 @@ export default function TodoList() {
 
   return (
     <>
-      <Grid container className="px-10 mt-5">
+      <Grid className="px-10 mt-5">
         <Grid container className="flex justify-between items-center px-10">
           <Link href="/TodoDetail">
             <Fab
@@ -106,7 +103,7 @@ export default function TodoList() {
             <Typography variant="h4" align="center" className="mb-5">
               {sectionTitle}
             </Typography>
-            <Box className="max-h-[60vh] overflow-y-auto">
+            <Box className="max-h-[61vh] overflow-y-auto">
               {todoListNotifications.getTodoCardList(sectionTitle).map((todo) => (
                 <TodoCard key={todo.todoId} todo={todo} />
               ))}
@@ -131,15 +128,15 @@ export default function TodoList() {
         </Box>
 
         <Box className="flex justify-end">
-        <Link href="/TodoDetail">
-          <Button
-            className="mr-2"
-            variant="contained"
-            style={{ backgroundColor: '#53D748', color: 'black' }}
-            onClick={() => handleUpdateLink(todo.todoId)}
-          >
-            更新
-          </Button>
+          <Link href="/TodoDetail">
+            <Button
+              className="mr-2"
+              variant="contained"
+              style={{ backgroundColor: '#53D748', color: 'black' }}
+              onClick={() => handleUpdateLink(todo.todoId)}
+            >
+              更新
+            </Button>
           </Link>
           <Button
             className="mr-2"
@@ -157,7 +154,6 @@ export default function TodoList() {
 
 export async function getServerSideProps(context: GetServerSidePropsContext): Promise<GetServerSidePropsResult<{}>> {
   const { req, res } = context;
-
   try {
     const cookies = parse(req.headers.cookie || '');
     const { isLogin, newToken } = await checkLogin(cookies.accessToken, cookies.refreshToken);

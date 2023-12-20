@@ -1,3 +1,5 @@
+import { UpdatePassword } from '@/types/auth';
+import { Profile } from '@/types/profile';
 
 import { User } from '@/types/auth';
 import { useCallback } from 'react';
@@ -7,7 +9,7 @@ import Cookies from 'js-cookie';
 import { State, TodoCard } from '@/recoilAtoms/recoilState';
 import { SearchConditions, TodoDetail } from '@/types/todos';
 import { useRecoilDataSync } from './useRecoilDataSync';
-import { downloadAllAttachments, downloadFileFromCloudFront, formatDate } from '@/utils/utils';
+import { downloadAllAttachments, downloadAttachment, formatDate } from '@/utils/utils';
 
 // type APIRequest<T = any> = {
 //     method: Method;
@@ -62,19 +64,129 @@ export function useAPI() {
         }
     }, []);
 
+    const updateEmail = useCallback(async (
+        accessToken: string | undefined,
+        refreshToken: string | undefined,
+        email: string | undefined,
+    ) => {
+        const id = 'updateEmail';
+        try {
+            notifications.open({ id: id, state: State.PROSSING });
+
+            const headers = {
+                Authorization: "Bearer " + accessToken,
+                "refreshtoken": refreshToken
+            };
+
+            const res = await axiosService.post({
+                headers: headers,
+                url: '/auth/update_email',
+                data: { email: email }
+            });
+
+            if (res.statusCode === undefined) {
+                notifications.rejected({ id: "updateEmail", state: State.ERROR, message: `${errorMessagesNetwork}` });
+                return
+            }
+
+            switch (res.statusCode) {
+                case 200:
+                    const payload = res.payload as { accesstoken: string };
+                    Cookies.set('accessToken', payload.accesstoken);
+                    notifications.confirmed({ id: id, state: State.SUCCESS });
+                    break;
+                case 401:
+                    notifications.rejected({
+                        id: id, state: State.ERROR, message: `401エラー：ワンタイムパスワードを間違えている可能性があります。\n
+                    または、ワンタイムパスワードの1日あたりの生成回数上限に達している可能性があります。` });
+                    break;
+                case 404:
+                    notifications.rejected({
+                        id: id, state: State.ERROR, message: `404エラー：データが存在しない可能性があります。\n
+                        または、インターネットに接続出来ていない可能性があります。` });
+                    break;
+                case 409:
+                    notifications.rejected({
+                        id: id, state: State.ERROR, message: `409エラー：すでに登録されているメールアドレスです。` });
+                    break;
+                default:
+                    notifications.rejected({ id: id, state: State.ERROR, message: `${res.statusCode}：エラー` });
+                    break;
+            }
+        } catch (e: any) {
+            notifications.rejected({ id: id, state: State.ERROR, message: e.message });
+        }
+    }, []);
+
     const emailAuthentication = useCallback(
         async (accessToken: string | undefined,
-            onetimePassword: string
+               refreshToken: string | undefined,
+               onetimePassword: string
         ) => {
             const id = 'emailAuthentication';
             try {
                 notifications.open({ id: id, state: State.PROSSING });
 
+                const headers = {
+                    Authorization: "Bearer " + accessToken,
+                    "refreshtoken": refreshToken
+                };
+
                 const res = await axiosService.post({
-                    url: '/auth/email_authentication',
+                    url: '/auth/update_email_authentication',
                     data: { onetimepassword: onetimePassword },
-                    headers: { Authorization: "Bearer " + accessToken }
+                    headers: headers
                 });
+                if (res.statusCode === undefined) {
+                    notifications.rejected({ id: id, state: State.ERROR2, message: `${errorMessagesNetwork}` });
+                    return
+                }
+
+                switch (res.statusCode) {
+                    case 200:
+                        const payload = res.payload as { accesstoken: string; refreshtoken: string };
+                        Cookies.set('accessToken', payload.accesstoken);
+                        Cookies.set('refreshToken', payload.refreshtoken);
+                        notifications.confirmed({ id: id, state: State.SUCCESS2 });
+                        break;
+                    case 409:
+                        notifications.rejected({ id: id, state: State.ERROR2, message: "409エラー：既に登録されています。" });
+                        break;
+                    case 401:
+                        notifications.rejected({
+                            id: id, state: State.ERROR2, message: `401エラー：ワンタイムパスワードを間違えている可能性があります。\n
+                        または、ワンタイムパスワードの1日あたりの生成回数上限に達している可能性があります。`});
+                        break;
+                    default:
+                        notifications.rejected({ id: id, state: State.ERROR2, message: `${res.statusCode}エラー` });
+                        break;
+                }
+            } catch (e: any) {
+                notifications.rejected({ id: id, state: State.ERROR, message: e.message });
+            }
+        }, []
+    );
+
+    const updateEmailAuthentication = useCallback(
+        async (accessToken: string | undefined,
+               refreshToken: string | undefined,
+               onetimePassword: string
+        ) => {
+            const id = 'updateEmailAuthentication';
+            try {
+                notifications.open({ id: id, state: State.PROSSING });
+
+                const headers = {
+                    Authorization: "Bearer " + accessToken,
+                    "refreshtoken": refreshToken
+                };
+
+                const res = await axiosService.post({
+                    url: '/auth/update_email_authentication',
+                    data: { onetime_password: onetimePassword },
+                    headers: headers
+                });
+
                 if (res.statusCode === undefined) {
                     notifications.rejected({ id: id, state: State.ERROR2, message: `${errorMessagesNetwork}` });
                     return
@@ -170,10 +282,43 @@ export function useAPI() {
                     headers
                 });
 
-                if (res === undefined) return { data: null, message: errorMessagesNetwork };
+                if (res.statusCode === undefined) {
+                    notifications.rejected({ id: id, state: State.ERROR, message: `${errorMessagesNetwork}` });
+                    return
+                }
+
+                switch (res.statusCode) {
+                    case 200:
+                        if (res.payload) {
+                            const payload = res.payload as { user_name: string, email: string, birthday: Date, avatar_photo: string };
+                            const downloadedFile = await downloadAttachment(payload.avatar_photo);
+                            const profile: Profile = {
+                                userName: payload.user_name,
+                                email: payload.email,
+                                birthday: payload.birthday,
+                                attachment: downloadedFile !== null ? downloadedFile : undefined,
+                            };
+                            notifications.confirmed({ id: id, state: State.STANDBY });
+                            return profile;
+                        }
+                        break;
+                    case 409:
+                        notifications.rejected({ id: id, state: State.ERROR, message: '既に登録されています。' });
+                        break;
+                    case 401:
+                        notifications.rejected({
+                            id: id,
+                            state: State.ERROR,
+                            message: "メールアドレスまたはパスワードが正しくありません",
+                        });
+                        break;
+                    default:
+                        notifications.rejected({ id: id, state: State.ERROR, message: `${res.statusCode}：エラー` });
+                        break;
+                }
 
                 notifications.confirmed({ id: id, state: State.SUCCESS });
-                return res;
+                return null;
             }
             catch (e: any) {
                 notifications.rejected({ id: id, state: State.ERROR, message: e.message });
@@ -191,7 +336,6 @@ export function useAPI() {
         const id = 'getTodoList';
         try {
             notifications.open({ id: id, state: State.PROSSING });
-
             const headers = {
                 Authorization: "Bearer " + accessToken,
                 "refreshtoken": refreshToken
@@ -226,7 +370,6 @@ export function useAPI() {
 
             switch (res.statusCode) {
                 case 200:
-                    console.log(res);
                     if (res.payload) {
                         const payload = res.payload as TodoCard[];
 
@@ -290,10 +433,8 @@ export function useAPI() {
                     // ここで、単一のファイルをFormDataに追加します。
                     formData.append('attachments', file);
                 });
-                console.log(formData);
             }
 
-            // Add other form data
             formData.append("request_model", JSON.stringify({
                 title: todoDetail.title,
                 description: todoDetail.description,
@@ -304,10 +445,6 @@ export function useAPI() {
                 current_state: todoDetail.currentState
             }));
 
-            Array.from(formData.entries()).forEach(([key, value]) => {
-                console.log(key, value);
-            });
-
             const res = await axiosService.post({
                 url: '/todo/create_todo',
                 data: formData,
@@ -317,9 +454,7 @@ export function useAPI() {
             switch (res.statusCode) {
                 case 200:
                     const payload = res.payload as { accesstoken: string };
-                    console.log("1:" + payload.accesstoken);
                     Cookies.set('accessToken', payload.accesstoken);
-                    console.log(Cookies.get('accessToken'));
                     notifications.confirmed({ id: id, state: State.SUCCESS });
                     break;
                 case 409:
@@ -338,6 +473,169 @@ export function useAPI() {
             notifications.rejected({ id: id, state: State.ERROR, message: e.message });
         }
     }, []);
+
+
+    const createProfile = useCallback(async (
+        accessToken: string | undefined,
+        refreshToken: string | undefined,
+        profile: Profile
+    ) => {
+        const id = 'createTodo';
+        try {
+            notifications.open({ id: id, state: State.PROSSING });
+            const headers = {
+                Authorization: "Bearer " + accessToken,
+                "refreshtoken": refreshToken,
+            };
+
+            const formData = new FormData();
+
+            if (profile.attachment) {
+                formData.append('attachment', profile.attachment);
+            }
+
+            formData.append("request_model", JSON.stringify({
+                user_name: profile.userName,
+                birthday: formatDate(profile.birthday, "-"),
+                attachment: profile.attachment,
+            }));
+
+            const res = await axiosService.post({
+                url: '/auth/create_profile',
+                data: formData,
+                headers: headers
+            });
+
+            switch (res.statusCode) {
+                case 200:
+                    if (res.payload) {
+                        const payload = res.payload as { user_name: string, birthday: Date, attachment: File };
+
+                        const profile: Profile = {
+                            userName: payload.user_name,
+                            birthday: payload.birthday,
+                            attachment: payload.attachment,
+                        };
+
+                        return profile;
+                    }
+                    notifications.confirmed({ id: id, state: State.SUCCESS });
+                    break;
+                case 409:
+                    notifications.rejected({ id: id, state: State.ERROR, message: "既に登録されています。" });
+                    break;
+                case 401:
+                    notifications.rejected({
+                        id: id, state: State.ERROR, message: `401エラー：ワンタイムパスワードを間違えている可能性があります。\n
+                    または、ワンタイムパスワードの1日あたりの生成回数上限に達している可能性があります。` });
+                    break;
+                default:
+                    notifications.rejected({ id: id, state: State.ERROR, message: `${res.statusCode}：エラー` });
+                    break;
+            }
+        } catch (e: any) {
+            notifications.rejected({ id: id, state: State.ERROR, message: e.message });
+        }
+    }, []);
+
+    const updateProfile = useCallback(async (
+        accessToken: string | undefined,
+        refreshToken: string | undefined,
+        profile: Profile
+    ) => {
+        const id = 'updateProfile';
+        try {
+            notifications.open({ id: id, state: State.PROSSING });
+            const headers = {
+                Authorization: "Bearer " + accessToken,
+                "refreshtoken": refreshToken,
+            };
+            const formData = new FormData();
+
+            if (profile.attachment) {
+                formData.append('attachment', profile.attachment);
+            }
+            formData.append("request_model", JSON.stringify({
+                user_name: profile.userName,
+                birthday: formatDate(profile.birthday, "-"),
+                attachment: profile.attachment,
+            }));
+
+
+
+            const res = await axiosService.post({
+                url: '/auth/update_profile',
+                data: formData,
+                headers: headers
+            });
+
+            switch (res.statusCode) {
+                case 200:
+                    const payload = res.payload as { accesstoken: string };
+                    Cookies.set('accessToken', payload.accesstoken);
+                    notifications.confirmed({ id: id, state: State.SUCCESS });
+                    break;
+                case 409:
+                    notifications.rejected({ id: id, state: State.ERROR, message: "既に登録されています。" });
+                    break;
+                case 401:
+                    notifications.rejected({
+                        id: id, state: State.ERROR, message: `401エラー：ワンタイムパスワードを間違えている可能性があります。\n
+                    または、ワンタイムパスワードの1日あたりの生成回数上限に達している可能性があります。` });
+                    break;
+                default:
+                    notifications.rejected({ id: id, state: State.ERROR, message: `${res.statusCode}：エラー` });
+                    break;
+            }
+        } catch (e: any) {
+            notifications.rejected({ id: id, state: State.ERROR, message: e.message });
+        }
+    }, []);
+
+    const updatePassword = useCallback(async (
+        accessToken: string | undefined,
+        refreshToken: string | undefined,
+        updatePassword: UpdatePassword
+    ) => {
+        const id = 'updateProfile';
+        try {
+            notifications.open({ id: id, state: State.PROSSING });
+            const headers = {
+                Authorization: "Bearer " + accessToken,
+                "refreshtoken": refreshToken,
+            };
+            const res = await axiosService.post({
+                url: '/auth/update_password',
+                data: {
+                    old_password: updatePassword.oldPassword,
+                    new_password: updatePassword.newPassword,
+                },
+                headers: headers
+            });
+
+            switch (res.statusCode) {
+                case 200:
+                    const payload = res.payload as { accesstoken: string };
+                    Cookies.set('accessToken', payload.accesstoken);
+                    notifications.confirmed({ id: id, state: State.SUCCESS });
+                    break;
+                case 422:
+                    notifications.rejected({ id: id, state: State.ERROR, message: "更新前パスワードが間違っています。。" });
+                    break;
+                case 401:
+                    notifications.rejected({
+                        id: id, state: State.ERROR, message: `401エラー：ワンタイムパスワードを間違えている可能性があります。\n
+                    または、ワンタイムパスワードの1日あたりの生成回数上限に達している可能性があります。` });
+                    break;
+                default:
+                    notifications.rejected({ id: id, state: State.ERROR, message: `${res.statusCode}：エラー` });
+                    break;
+            }
+        } catch (e: any) {
+            notifications.rejected({ id: id, state: State.ERROR, message: e.message });
+        }
+    }, []);
+
 
 
     const updateTodo = useCallback(async (
@@ -361,7 +659,6 @@ export function useAPI() {
                     // ここで、単一のファイルをFormDataに追加します。
                     formData.append('attachments', file);
                 });
-                console.log(formData);
             }
 
             // Add other form data
@@ -376,12 +673,6 @@ export function useAPI() {
                 current_state: todoDetail.currentState
             }));
 
-            Array.from(formData.entries()).forEach(([key, value]) => {
-                console.log(key, value);
-            });
-
-            console.log(formData);
-
             const res = await axiosService.post({
                 url: '/todo/update_todo',
                 data: formData,
@@ -391,9 +682,7 @@ export function useAPI() {
             switch (res.statusCode) {
                 case 200:
                     const payload = res.payload as { accesstoken: string };
-                    console.log("1:" + payload.accesstoken);
                     Cookies.set('accessToken', payload.accesstoken);
-                    console.log(Cookies.get('accessToken'));
                     notifications.confirmed({ id: id, state: State.SUCCESS });
                     break;
                 case 409:
@@ -431,8 +720,6 @@ export function useAPI() {
                 params: { todo_id: todoId },
                 headers: headers
             });
-
-            console.log(headers);
 
             switch (res.statusCode) {
                 case 200:
@@ -482,7 +769,6 @@ export function useAPI() {
                     Cookies.set('accessToken', payload.accesstoken);
                     //添付ファイルのダウンロード
                     const attachments = payload.attachments; // これは添付ファイルのURLが格納された配列です
-                    console.log(payload, "payload")
                     const downloadedFiles = await downloadAllAttachments(attachments);
 
                     const todoDetail: TodoDetail = {
@@ -496,7 +782,6 @@ export function useAPI() {
                         attachments: downloadedFiles,
                         color: payload.color
                     };
-                    console.log(payload);
                     notifications.confirmed({ id: id, state: State.STANDBY }); //更新画面を開いたときに、SUCCESSだと画面が閉じるためSTANDBY
                     return todoDetail;
 
@@ -539,6 +824,11 @@ export function useAPI() {
         deleteTodo,
         stanbyNotification,
         getTodoDatail,
-        updateTodo
+        updateTodo,
+        createProfile,
+        updateProfile,
+        updateEmail,
+        updateEmailAuthentication,
+        updatePassword
     };
 }

@@ -4,10 +4,16 @@ type User = {
   onetimepassword: string;
 };
 
+type UpdatePassword = {
+  oldPassword: string;
+  newPassword: string;
+  checkPassword: string;
+};
+
 type Token = {
   accesstoken: string;
   refreshtoken: string;
 };
 
-export type { Token, User };
+export type { Token, User, UpdatePassword };
 

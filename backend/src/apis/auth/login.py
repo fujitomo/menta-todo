@@ -47,7 +47,5 @@ async def endpoint(
 
     access_token = AuthFuncs.get_access_token(user[REGISTRANT.USER_ID])
     refresh_token = AuthFuncs.get_refresh_token(user[REGISTRANT.USER_ID])
-    
-    print('refreshtoken:{refresh_token}')
 
     return Response(accesstoken=access_token,refreshtoken=refresh_token)

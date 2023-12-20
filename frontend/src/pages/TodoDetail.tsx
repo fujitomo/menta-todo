@@ -17,9 +17,6 @@ import { parse } from "cookie";
 import 'dayjs/locale/ja'; // 日本語のロケールをインポート
 import { GetServerSidePropsContext, GetServerSidePropsResult } from "next";
 
-
-const BUTTON_CLASSNAME = "px-4 py-2 text-2xl w-[8%] bg-[#B29649] hover:bg-[#B29649] font-base text-black font-bold rounded my-4 mx-2";
-
 class DateAdapter extends AdapterDateFns {
   // 参考サイトの実装例よりも、端折っているが、日曜始まりが固定なら以下で十分。
   getWeekdays = (): string[] => ['日', '月', '火', '水', '木', '金', '土'];
@@ -152,7 +149,7 @@ export default function TodoDetail() {
         <Typography className="text-4xl py-10 text-center">
           TODO{title}
         </Typography>
-        <TextField type="hidden" {...register("todoId")} value={todoId} />
+        <TextField type="hidden" {...register("todoId")} value={todoId} className="hidden" />
         <Box className=" w-[95%]  mx-auto pt-2 overflow-y-auto h-[53vh]">
           <Box
             className="w-11/12 flex flex-col gap-4  h-[720px]">
@@ -310,7 +307,6 @@ export default function TodoDetail() {
                     } />
                 )}
                 onChange={(_event, newValue) => {
-                  console.log(newValue);
                   handleValueChange("currentState", newValue?.value);
                   setState(newValue);
                   onTrigger("currentState");
@@ -332,7 +328,7 @@ export default function TodoDetail() {
       </Box>
       <Box display="flex" justifyContent="right" className="w-[95.5%]">
         <LoadingButton
-          className={`${BUTTON_CLASSNAME}`}
+          className={"app-button"}
           type="submit"
           variant="contained"
           onClick={handleOpenDialog()}
@@ -342,7 +338,7 @@ export default function TodoDetail() {
         </LoadingButton>
         <Link href="/TodoList" legacyBehavior passHref>
           <LoadingButton
-            className={`${BUTTON_CLASSNAME} `}
+            className={"app-button"}
             variant="contained"
             disabled={notifications.isLoading()}>
             戻る

@@ -71,7 +71,6 @@ class FileManager:
     def upload(self, binary: bytes, folder: str):
 
         try:
-            print("upload start")
             content_type, fmt = FileManager.image_format(binary)
             hashed_binary = FileManager.hash_binary_to_md5(binary)
 
@@ -84,7 +83,6 @@ class FileManager:
                'ContentType': content_type
              } if content_type else {}
             )
-            print("upload server_path:",server_path)
             server_path = f'{folder}/{hashed_binary}.{fmt}'
             return f"{self.aws_cloudfront_url}/{server_path}"
 

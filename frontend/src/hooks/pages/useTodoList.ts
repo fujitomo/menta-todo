@@ -1,7 +1,7 @@
 import { Box } from '@mui/material';
 
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
-import { State, TodoCard, Transition, notificationsState, searchConditionsState, todoListState, transitionTodoDetail } from '@/recoilAtoms/recoilState';
+import { State, TodoCard, Transition, notificationsState, searchConditionsState, todoListState, TransitionDetail } from '@/recoilAtoms/recoilState';
 import React, { useState } from 'react';
 import Cookies from 'js-cookie';
 import { useAPI } from "@/hooks/useAPI";
@@ -10,21 +10,20 @@ import { set } from 'date-fns';
 
 export const useTodoList = () => {
      const { getTodoList, deleteTodo, stanbyNotification } = useAPI();
-     const [, setValue] = React.useState<Date | null>(null);
+     const [, setValue] = useState<Date | null>(null);
      const todoList = useRecoilValue(todoListState);
      const [, setIsModalOpen] = useState(false);
      const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
      const [isSortingPopover, setSortingPopover] = useState(false);
      const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
      const [searchConditions, setSearchConditions] = useRecoilState(searchConditionsState);
-     const [transitionDetail, setTransitionDetail] = useRecoilState(transitionTodoDetail);
+     const [transitionDetail, setTransitionDetail] = useRecoilState(TransitionDetail);
      const notification = useRecoilValue(notificationsState);
      const [openDialog, setOpenDialog] = useState(false);
      const [todoId, setTodoId] = useState("");
 
      // コンポーネントがマウントされた際にカード情報を取得
      React.useEffect(() => {
-          console.log('カード情報を取得します');
           fetchCards();
      }, [searchConditions]);
 
@@ -75,7 +74,7 @@ export const useTodoList = () => {
 
      const handleCreateLink = () => {
           setTransitionDetail(() => ({
-               transitionTodoDetail: Transition.CREATE,
+               TransitionDetail: Transition.CREATE,
                todoId: null,
           }));
           stanbyNotification();
@@ -83,7 +82,7 @@ export const useTodoList = () => {
 
      const handleUpdateLink = (updateTodoId: string) => {
           setTransitionDetail(() => ({
-               transitionTodoDetail: Transition.UPDATE,
+               TransitionDetail: Transition.UPDATE,
                todoId: updateTodoId,
           }));
           stanbyNotification();

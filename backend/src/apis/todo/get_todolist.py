@@ -65,7 +65,6 @@ async def endpoint(
     if request_model.tags_existence is not None:
 
         if request_model.tags_existence:
-            print(request_model.tag)
             if request_model.tag:
                 search[TODO.TAGS] = {"$all": request_model.tag }
             else:

@@ -7,6 +7,8 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { useRecoilValue } from "recoil";
 import { useMessageSnackbar } from "@/hooks/MessageParts/useMessageSnackbar";
 
+import 'dayjs/locale/ja';
+
 type Props = {
   children: ReactNode;
 };
@@ -19,9 +21,7 @@ const MainLayout = ({ children }: Props) => {
     <Box className="min-h-screen w-full bg-base_color">
       <Header />
       <Box component="main">
-        {/* TODO <React.Fragmentで囲む理由（外すとエラーになる） */}
         <React.Fragment>{children}</React.Fragment>
-
         <MessageSnackbar
           open={notification.state === State.ERROR || notification.state === State.ERROR2}
           autoHideDuration={notifications.closeTimer()}

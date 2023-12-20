@@ -4,7 +4,6 @@ from constants.endpoints import Endpoints
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
-from fastapi.security import HTTPBearer
 from fastapi_jwt_auth import AuthJWT
 from funcs import DbFuncs
 from other.middleware import AccessHandlingMiddleware

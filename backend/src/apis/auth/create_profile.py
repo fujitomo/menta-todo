@@ -41,7 +41,7 @@ bearer_scheme = HTTPBearer()
 async def endpoint(
     request: Request,
     request_model: RequestModel = Form(...),
-    file: Optional[UploadFile] = File(default=None),
+    attachment: Optional[UploadFile] = File(default=None),
     db=Depends(DbFuncs.get_database),
     Authorize: AuthJWT = Depends()
 ):
@@ -74,8 +74,8 @@ async def endpoint(
     if result.matched_count == 0:
         ExceptionFuncs.raise_not_found(ERROR_MESSAGE.NOT_FOUND)
 
-    if file:
-        file_byte = await file.read()
+    if attachment:
+        file_byte = await attachment.read()
         hs = hashlib.md5(file_byte).hexdigest()
         file_manager = FileManager()
         avatar_image = file_manager.upload(

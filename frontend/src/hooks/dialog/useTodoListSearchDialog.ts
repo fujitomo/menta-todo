@@ -1,4 +1,4 @@
-import { transitionTodoDetail } from './../../recoilAtoms/recoilState';
+import { TransitionDetail } from './../../recoilAtoms/recoilState';
 import { use, useState } from "react";
 import { useForm } from "react-hook-form";
 import dayjs from "dayjs";
@@ -86,13 +86,11 @@ export const useTodoListSearchDialog = () => {
   //フォーム送信時の処理
   const onSubmit = async (onClose: () => void) => {
     try {
-      console.log("searchConditions", searchConditions);
       setSearchConditions(getValues());
       const accessToken = Cookies.get("accessToken");
       const refreshToken = Cookies.get("refreshToken");
       // APIエンドポイントからデータを取得
       await getTodoList(accessToken, refreshToken, getValues());
-      console.log(searchConditions);
     } catch (error) {
       console.error('カード情報の取得に失敗しました:', error);
     }

@@ -1,4 +1,5 @@
 
+from funcs.util_funcs import UtilFuncs
 from funcs.todo_funcs import TodoFuncs
 from constants import BasicResponses, Endpoints, Tags
 from constants.models import TodoResponsModel
@@ -49,11 +50,10 @@ async def endpoint(
 
     processed_attachments = []
     attachments = todo_data[TODO.ATTACHMENTS]
-    print("attachments", attachments)
     if attachments:
         for attachment in attachments:
             if attachment:
-                processed_attachments.append(TodoFuncs.create_signed_url(attachment))
+                processed_attachments.append(UtilFuncs.create_signed_url(attachment))
             else:
                 processed_attachments.append("")
 

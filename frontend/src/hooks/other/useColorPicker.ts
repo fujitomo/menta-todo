@@ -22,7 +22,6 @@ export const useColorPicker = (value?: string) => {
   };
 
   const handleChangeComplete = (color: { hex: React.SetStateAction<string>; }) => {
-    console.log(color)
     setColor(color.hex);
     handleClose();
   };

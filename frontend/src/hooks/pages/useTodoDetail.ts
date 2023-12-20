@@ -5,7 +5,7 @@ import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useAPI } from "@/hooks/useAPI";
 import { useRecoilState, useRecoilValue } from "recoil";
-import { State, TodoState, Transition, notificationsState, searchConditionsState, transitionTodoDetail } from "@/recoilAtoms/recoilState";
+import { State, TodoState, Transition, notificationsState, searchConditionsState, TransitionDetail } from "@/recoilAtoms/recoilState";
 import { useNotifications } from "@/hooks/useNotifications";
 import { STATE_ATTACHMENTS } from "@/utils/utils";
 import Cookies from "js-cookie";
@@ -18,7 +18,7 @@ export const useTodoDetail = () => {
   const notifications = useNotifications();
   const [errorText, setErrorText] = useState<string | null>(null);
   const [state, setState] = useState<{ label: string; value: string } | null>({ label: TodoState.WAITING, value: TodoState.WAITING });
-  const transition = useRecoilValue(transitionTodoDetail);
+  const transition = useRecoilValue(TransitionDetail);
   // 日付範囲の状態を管理
   const [dateStart, setDateStart] = useState<Date | null>();
   const [dateEnd, setDateEnd] = useState<Date | undefined>();
@@ -114,7 +114,7 @@ export const useTodoDetail = () => {
   }, [notification.state]);
 
   useEffect(() => {
-    if (transition.transitionTodoDetail === Transition.CREATE) {
+    if (transition.TransitionDetail === Transition.CREATE) {
       setTitle("登録");
     } else {
       setTitle("更新");
@@ -135,7 +135,6 @@ export const useTodoDetail = () => {
         handleDateChange("dateStart", todoDetail.dateStart ?? undefined);
 
         setDateEnd(todoDetail.dateEnd ? new Date(todoDetail.dateEnd) : undefined);
-        console.log("DateEnd", dateEnd)
         handleDateChange("dateEnd", todoDetail.dateEnd ?? undefined);
         handleValueChange("currentState", todoDetail.currentState ?? "");
         setState({ label: todoDetail.currentState ?? "", value: todoDetail.currentState ?? "" });
@@ -149,7 +148,6 @@ export const useTodoDetail = () => {
           const attachment = todoAttachments[i];
           if (attachment instanceof File) {
             handleFileChange(`attachments[${i}]`, attachment);
-            console.log(`todoAttachments[${i}]`, attachment);
             tmpFiles.push(attachment);
           }
           setTmpFiles(tmpFiles);
@@ -164,7 +162,7 @@ export const useTodoDetail = () => {
       const accessToken = Cookies.get("accessToken");
       const refreshToken = Cookies.get("refreshToken");
       // APIエンドポイントからデータを取得（エンドポイントを適切に変更してください）
-      if (transition.transitionTodoDetail === Transition.CREATE) {
+      if (transition.TransitionDetail === Transition.CREATE) {
           await createTodo(accessToken, refreshToken, todoDetail);
       }else{
         await updateTodo(accessToken, refreshToken, todoDetail);

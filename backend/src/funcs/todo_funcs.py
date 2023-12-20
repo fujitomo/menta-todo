@@ -17,7 +17,6 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import padding
-from botocore.signers import CloudFrontSigner
 from constants import env
 
 class TodoFuncs:
@@ -138,24 +137,3 @@ class TodoFuncs:
         is_delete = file_manager.deleteS3Folder(f"{user_id}/{SETTINGS.FOLDER_TODO_ATTACHMENTS}/{todo_id}")
         return is_delete
 
-
-    @staticmethod
-    def rsa_signer(message):
-        with open(env.AWS_CLOUDFRONT_PEM, 'rb') as key_file:
-            private_key = serialization.load_pem_private_key(
-                key_file.read(),
-                password=None,
-                backend=default_backend()
-            )
-        return private_key.sign(message, padding.PKCS1v15(), hashes.SHA1())
-
-    @staticmethod
-    def create_signed_url(url):
-        key_id = env.AWS_CLOUDFRONT_KEY
-        expire_date = datetime.utcnow() + timedelta(minutes=3)
-        cloudfront_signer = CloudFrontSigner(key_id,TodoFuncs.rsa_signer)
-        signed_url = cloudfront_signer.generate_presigned_url(
-            url, date_less_than=expire_date)
-        print("url",url)
-        print("signed_url", signed_url)
-        return signed_url

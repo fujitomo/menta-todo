@@ -27,4 +27,5 @@ type TodoDetail = {
   color: string;
 }
 
+
 export type { TodoDetail, SearchConditions, TodoState }

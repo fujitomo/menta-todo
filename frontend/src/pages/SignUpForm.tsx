@@ -1,4 +1,3 @@
-import MainLayout from "@/components/pages/MainLayout";
 import {
   Box,
   TextField,
@@ -10,6 +9,7 @@ import LoadingButton from "@mui/lab/LoadingButton";
 import { useSignUpForm } from "@/hooks/pages/useSignUpForm";
 import { AuthModal } from "@/components/dialog/AuthDialog";
 import { CompleteDialog } from "@/components/dialog/CompleteDialog";
+import { EMAIL_MODE } from "@/recoilAtoms/recoilState";
 
 export default function SignUpForm() {
 
@@ -28,7 +28,6 @@ export default function SignUpForm() {
         <Box
           className="w-5/6 mx-auto"
           component="form"
-          //onSubmit={handleSubmit}
           noValidate
         >
           <TextField
@@ -89,7 +88,7 @@ export default function SignUpForm() {
               </a>
             </Link>
           </Box>
-          <AuthModal />
+          <AuthModal email_mode={ EMAIL_MODE.AUTHENTICATION } />
           <CompleteDialog />
         </Box>
       </Box>

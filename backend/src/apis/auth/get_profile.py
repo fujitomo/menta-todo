@@ -1,5 +1,6 @@
 from typing import Optional
 
+from funcs.util_funcs import UtilFuncs
 from constants import BasicResponses, Endpoints, Tags
 from constants.other import COLLLECTION, ERROR_MESSAGE, REGISTRANT
 from fastapi import APIRouter, Depends, Request
@@ -7,10 +8,12 @@ from fastapi.security import HTTPBearer
 from fastapi_jwt_auth import AuthJWT
 from funcs import AuthFuncs, DbFuncs, ExceptionFuncs
 from pydantic import BaseModel
+from constants import env
 
 
 class Response(BaseModel):
     user_name: Optional[str] = None
+    email: Optional[str] = None
     birthday: Optional[str] = None
     avatar_photo: Optional[str] = None
     avatar_name: Optional[str] = None
@@ -46,10 +49,14 @@ async def endpoint(
             {REGISTRANT.BIRTHDAY: {"$exists": True}},
             {REGISTRANT.DELETE_DATE: None}]},
         {REGISTRANT.USER_NAME: 1,
+         REGISTRANT.EMAIL: 1,
          REGISTRANT.BIRTHDAY: 1,
          REGISTRANT.AVATAR_PHOTO: 1,
          REGISTRANT.AVATAR_NAME: 1}
     )
+
+    if profile.get(REGISTRANT.AVATAR_PHOTO):
+        profile[REGISTRANT.AVATAR_PHOTO] = UtilFuncs.create_signed_url(profile.get(REGISTRANT.AVATAR_PHOTO))
 
     if not profile:
         ExceptionFuncs.raise_not_found(ERROR_MESSAGE.NOT_FOUND)

@@ -9,8 +9,13 @@ import DialogTitle from "@mui/material/DialogTitle";
 import React from "react";
 import LoadingButton from "@mui/lab/LoadingButton";
 import { useAuthDialog } from "@/hooks/dialog/useAuthDialog";
+import { EMAIL_MODE } from "@/recoilAtoms/recoilState";
 
-export function AuthModal() {
+interface AuthDialogProps {
+  email_mode: EMAIL_MODE;
+}
+
+export function AuthModal({ email_mode }: AuthDialogProps) {
 
   const {
     register,
@@ -20,7 +25,7 @@ export function AuthModal() {
     onSubmitEmailAuthentication,
     handleCloseAuthModal,
     isOpenAuthModal
-  } = useAuthDialog();
+  } = useAuthDialog(email_mode);
 
     return (
       <Dialog

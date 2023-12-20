@@ -2,7 +2,7 @@ import { SubmitHandler, useForm } from "react-hook-form";
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { User } from "@/types/auth";
-import { State, notificationsState } from "@/recoilAtoms/recoilState";
+import { EMAIL_MODE, State, notificationsState } from "@/recoilAtoms/recoilState";
 import { useNotifications } from "@/hooks/useNotifications";
 import Cookies from "js-cookie";
 import { useAPI } from "@/hooks/useAPI";
@@ -14,10 +14,10 @@ const getValidationSchema = () => {
     return yup.object(schema);
 };
 
-export const useAuthDialog = () => {
+export const useAuthDialog = (email_mode: EMAIL_MODE) => {
     const notification = useRecoilValue(notificationsState);
     const notifications = useNotifications();
-    const { createUser, emailAuthentication } = useAPI();
+    const { createUser, emailAuthentication, updateEmailAuthentication } = useAPI();
 
     const schema = getValidationSchema();
     const {
@@ -32,10 +32,13 @@ export const useAuthDialog = () => {
     });
 
     const onSubmitEmailAuthentication = async () => {
-        console.log("test")
         const accessToken = Cookies.get('accessToken');
-        console.log(accessToken);
-        await emailAuthentication(accessToken ?? undefined, getValues().onetimepassword);
+        const refreshToken = Cookies.get('refreshToken');
+        if(email_mode === EMAIL_MODE.AUTHENTICATION){
+            await emailAuthentication(accessToken, refreshToken, getValues().onetimepassword);
+        } else{
+            await updateEmailAuthentication(accessToken, refreshToken, getValues().onetimepassword);
+        }
     };
 
     const onSubmitCreateUser: SubmitHandler<User> = async () => {

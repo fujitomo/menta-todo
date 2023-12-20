@@ -18,6 +18,13 @@ export const enum State {
   ERROR2 = 'ERROR2',
 }
 
+
+export const enum EMAIL_MODE {
+    ADD = 'STANDBY',
+    UPDATE = 'PROSSING',
+    AUTHENTICATION = "AUTHENTICATION",
+}
+
 export const notificationsState = atom<Notification>({
   key: 'notificationsState',
   default: {
@@ -57,6 +64,12 @@ export const todoListState = atom<TodoCard[]>({
   ],
 });
 
+
+export const displayAvatar = atom<boolean>({
+  key: 'displayAvatar',
+  default: false,
+});
+
 // 検索条件のインターフェース
 export interface SearchConditions {
   title: string | null;
@@ -90,15 +103,15 @@ export enum  Transition {
 }
 
 
-export interface TransitionTodoDetail {
-  transitionTodoDetail: Transition | null;
+export interface TransitionDetail {
+  TransitionDetail: Transition | null;
   todoId: string | null;
 }
 
-export const transitionTodoDetail = atom<TransitionTodoDetail>({
-  key: 'transitionTodoDetail',
+export const TransitionDetail = atom<TransitionDetail>({
+  key: 'TransitionDetail',
   default: {
-    transitionTodoDetail: null,
+    TransitionDetail: null,
     todoId: null,
   },
 });
