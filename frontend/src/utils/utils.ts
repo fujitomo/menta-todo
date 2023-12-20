@@ -1,4 +1,7 @@
 import axios from "axios";
+import { GetServerSidePropsContext } from "next";
+import { parse } from "cookie";
+import 'dayjs/locale/ja'; // 日本語のロケールをインポート
 
 //サーバーサイドのみで使用可能
 export const checkLogin = async (
@@ -29,6 +32,24 @@ export const checkLogin = async (
         };
     }
 };
+
+export async function loginCheckRedirect(context: GetServerSidePropsContext){
+    const { req, res } = context;
+    try {
+      const cookies = parse(req.headers.cookie || '');
+      const { isLogin, newToken } = await checkLogin(cookies.accessToken, cookies.refreshToken);
+
+      if (!isLogin) return redirectToLogin();
+
+      if (newToken) {
+        res.setHeader('Set-Cookie', `accessToken=${newToken}; Path=/; HttpOnly; Secure`);
+      }
+
+      return { props: {} };
+    } catch (err) {
+      return redirectToLogin();
+    }
+  }
 
 export const redirectToLogin = () => {
     return {

@@ -1,5 +1,5 @@
 
-import { checkLogin, redirectToLogin } from "@/utils/utils";
+import { checkLogin, loginCheckRedirect, redirectToLogin } from "@/utils/utils";
 import { Box, Button, Fab, Grid, Typography } from "@mui/material";
 import Link from 'next/link';
 import { parse } from "cookie";
@@ -153,19 +153,5 @@ export default function TodoList() {
 }
 
 export async function getServerSideProps(context: GetServerSidePropsContext): Promise<GetServerSidePropsResult<{}>> {
-  const { req, res } = context;
-  try {
-    const cookies = parse(req.headers.cookie || '');
-    const { isLogin, newToken } = await checkLogin(cookies.accessToken, cookies.refreshToken);
-
-    if (!isLogin) return redirectToLogin();
-
-    if (newToken) {
-      res.setHeader('Set-Cookie', `accessToken=${newToken}; Path=/; HttpOnly; Secure`);
-    }
-
-    return { props: {} };
-  } catch (err) {
-    return redirectToLogin();
-  }
+  return loginCheckRedirect(context);
 }

@@ -10,6 +10,10 @@ import { useUpDateMailAddress } from "@/hooks/pages/useUpDateMailAddress";
 import { AuthModal } from "@/components/dialog/AuthDialog";
 import { CompleteDialog } from "@/components/dialog/CompleteDialog";
 import { EMAIL_MODE } from "@/recoilAtoms/recoilState";
+import { checkLogin, loginCheckRedirect, redirectToLogin } from "@/utils/utils";
+import { parse } from "cookie";
+import 'dayjs/locale/ja'; // 日本語のロケールをインポート
+import { GetServerSidePropsContext, GetServerSidePropsResult } from "next";
 
 export default function UpDateMailAdress() {
 
@@ -72,4 +76,8 @@ export default function UpDateMailAdress() {
       </Box>
     </Box>
   );
+}
+
+export async function getServerSideProps(context: GetServerSidePropsContext): Promise<GetServerSidePropsResult<{}>> {
+  return loginCheckRedirect(context);
 }

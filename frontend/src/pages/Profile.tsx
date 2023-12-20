@@ -8,7 +8,7 @@ import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import 'dayjs/locale/ja';
 import ConfirmDialog from "@/components/dialog/ConfirmDialog";
 
-import { checkLogin, redirectToLogin } from "@/utils/utils";
+import { checkLogin, loginCheckRedirect, redirectToLogin } from "@/utils/utils";
 import { parse } from "cookie";
 import 'dayjs/locale/ja'; // 日本語のロケールをインポート
 import { GetServerSidePropsContext, GetServerSidePropsResult } from "next";
@@ -158,18 +158,5 @@ export default function Profile() {
 }
 
 export async function getServerSideProps(context: GetServerSidePropsContext): Promise<GetServerSidePropsResult<{}>> {
-  const { req, res } = context;
-  try {
-    const cookies = parse(req.headers.cookie || '');
-    const { isLogin, newToken } = await checkLogin(cookies.accessToken, cookies.refreshToken);
-
-    if (!isLogin) return redirectToLogin();
-
-    if (newToken) {
-      res.setHeader('Set-Cookie', `accessToken=${newToken}; Path=/; HttpOnly; Secure`);
-    }
-    return { props: {} };
-  } catch (err) {
-    return redirectToLogin();
-  }
+  return loginCheckRedirect(context);
 }

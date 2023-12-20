@@ -8,6 +8,10 @@ import React from "react";
 import LoadingButton from "@mui/lab/LoadingButton";
 import { useUpLoginPassword } from "@/hooks/pages/useUpLoginPassword";
 import ConfirmDialog from "@/components/dialog/ConfirmDialog";
+import { GetServerSidePropsContext, GetServerSidePropsResult } from "next";
+import { checkLogin, loginCheckRedirect, redirectToLogin } from "@/utils/utils";
+import { parse } from "cookie";
+import 'dayjs/locale/ja'; // 日本語のロケールをインポート
 
 export default function UpLoginPassword() {
 
@@ -110,4 +114,8 @@ export default function UpLoginPassword() {
       />
     </>
   );
+}
+
+export async function getServerSideProps(context: GetServerSidePropsContext): Promise<GetServerSidePropsResult<{}>> {
+  return loginCheckRedirect(context);
 }
