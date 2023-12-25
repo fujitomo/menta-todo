@@ -46,6 +46,7 @@ export const useAuthDialog = (email_mode: EMAIL_MODE) => {
     };
 
     const handleCloseAuthModal = () => {
+        setValue('onetimepassword', '');
         notifications.confirmed({ id: 'snackbar', state: State.PROSSING });
     };
 
