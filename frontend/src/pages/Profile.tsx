@@ -8,8 +8,7 @@ import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import 'dayjs/locale/ja';
 import ConfirmDialog from "@/components/dialog/ConfirmDialog";
 
-import { checkLogin, loginCheckRedirect, redirectToLogin } from "@/utils/utils";
-import { parse } from "cookie";
+import { loginCheckRedirect } from "@/utils/utils";
 import 'dayjs/locale/ja'; // 日本語のロケールをインポート
 import { GetServerSidePropsContext, GetServerSidePropsResult } from "next";
 import { useProfile } from "@/hooks/pages/useProfile";
@@ -40,6 +39,7 @@ export default function Profile() {
     tmpFile,
     isTitleFocused,
     setTitleIsFocused,
+    tmpFileName
   } = useProfile();
 
   const getDatePickerStyles = (error: any) => ({
@@ -117,8 +117,8 @@ export default function Profile() {
             <Box className="">
               <FileUpload
                 label="アイコン画像"
-                value={"登録済みアイコン画像"}
-                tmpFile={tmpFile} // Fix the assignment here
+                value={tmpFileName}
+                tmpFile={tmpFile ?? undefined} // Fix the assignment here
                 onChange={(event) => {
                   createChangeHandler(event);
                 }}

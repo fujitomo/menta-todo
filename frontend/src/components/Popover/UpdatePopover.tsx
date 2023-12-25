@@ -17,7 +17,7 @@ export const UpdatePopover: React.FC<UpdatePopoverProps> = ({ anchorEl, onClose,
   } = useUpdatePopover();
 
   // 並び替え条件の項目を配列として定義します
-  const sortingOptions = [
+  const updateOptions = [
     { label: "メールアドレス変更", value: "updateEmail" },
     { label: "ログインパスワード変更", value: "updatePassword" },
     { label: "プロフィール登録・変更", value: "profile" },
@@ -36,7 +36,7 @@ export const UpdatePopover: React.FC<UpdatePopoverProps> = ({ anchorEl, onClose,
       <Typography className="text-4xl">{userName}</Typography>
       <Typography className="pl-2 pt-1">{email}</Typography>
       <List>
-        {sortingOptions.map((option) => (
+        {updateOptions.map((option) => (
           <ListItem key={option.value} onClick={() => handleItemClick(option.value, onClose)} className="hover:bg-gray-100">
             <ListItemText primary={option.label} className="cursor-pointer" />
           </ListItem>

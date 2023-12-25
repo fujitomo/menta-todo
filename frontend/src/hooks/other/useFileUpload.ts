@@ -35,6 +35,7 @@ export const useFileUpload = (onChange?: (event: React.ChangeEvent<HTMLInputElem
   };
 
   const displayImage = () => {
+    console.log(fileDisplay)
     if (fileDisplay) {
       const reader = new FileReader();
       reader.onloadend = () => setImageSrc(reader.result as string);

@@ -55,7 +55,7 @@ async def endpoint(
          REGISTRANT.AVATAR_NAME: 1}
     )
 
-    if profile.get(REGISTRANT.AVATAR_PHOTO):
+    if profile is not None and profile.get(REGISTRANT.AVATAR_PHOTO):
         profile[REGISTRANT.AVATAR_PHOTO] = UtilFuncs.create_signed_url(profile.get(REGISTRANT.AVATAR_PHOTO))
 
     if not profile:

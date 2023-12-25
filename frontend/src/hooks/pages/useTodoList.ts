@@ -1,29 +1,25 @@
-import { Box } from '@mui/material';
-
-import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
-import { State, TodoCard, Transition, notificationsState, searchConditionsState, todoListState, TransitionDetail } from '@/recoilAtoms/recoilState';
+import { useRecoilState, useRecoilValue } from 'recoil';
+import { Transition, searchConditionsState, todoListState, TransitionDetail } from '@/recoilAtoms/recoilState';
 import React, { useState } from 'react';
-import Cookies from 'js-cookie';
+import Cookies from "js-cookie";
 import { useAPI } from "@/hooks/useAPI";
-import { useForm } from 'react-hook-form';
-import { set } from 'date-fns';
 
 export const useTodoList = () => {
      const { getTodoList, deleteTodo, stanbyNotification } = useAPI();
      const [, setValue] = useState<Date | null>(null);
      const todoList = useRecoilValue(todoListState);
-     const [, setIsModalOpen] = useState(false);
      const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
      const [isSortingPopover, setSortingPopover] = useState(false);
      const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
-     const [searchConditions, setSearchConditions] = useRecoilState(searchConditionsState);
+     const [searchConditions] = useRecoilState(searchConditionsState);
+     // 使用しないtransitionDetailも定義しないとエラーが表示される
      const [transitionDetail, setTransitionDetail] = useRecoilState(TransitionDetail);
-     const notification = useRecoilValue(notificationsState);
      const [openDialog, setOpenDialog] = useState(false);
      const [todoId, setTodoId] = useState("");
 
      // コンポーネントがマウントされた際にカード情報を取得
      React.useEffect(() => {
+          console.log('カード情報を取得します');
           fetchCards();
      }, [searchConditions]);
 

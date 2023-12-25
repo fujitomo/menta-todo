@@ -50,6 +50,8 @@ async def endpoint(
     # DBのコレクションを定義
     collection = db[COLLLECTION.REGISTRANT]
     token_info: AuthFuncs.TokenPayload = request.state.token_info
+
+    print("fileTEST", file)
     result = await collection.update_one(
         {"$and": [{REGISTRANT.USER_ID: token_info.user_id},
                   {REGISTRANT.BIRTHDAY: {"$exists": True}}]},
@@ -57,6 +59,8 @@ async def endpoint(
             REGISTRANT.USER_NAME: request_model.user_name,
             REGISTRANT.BIRTHDAY:  UtilFuncs.get_date_isoformat(request_model.birthday),
             REGISTRANT.AVATAR_NAME:  request_model.avatar_name,
+            REGISTRANT.AVATAR_PHOTO: None,
+            REGISTRANT.AVATAR_PHOTO_HASH: None,
             REGISTRANT.UPDATE_DATE: UtilFuncs.get_now_isodatetime()
         }},
     )

@@ -1,5 +1,5 @@
 
-import { Autocomplete, Box, Dialog, DialogActions, DialogContent, DialogTitle, TextField, styled } from "@mui/material";
+import { Autocomplete, Box, Dialog, DialogActions, DialogContent, DialogTitle, TextField } from "@mui/material";
 import 'dayjs/locale/ja'; // 日本語のロケールをインポート
 import React from "react";
 import LoadingButton from "@mui/lab/LoadingButton";
@@ -7,8 +7,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers-pro';
 import { AdapterDayjs } from '@mui/x-date-pickers-pro/AdapterDayjs';
 import { DateRangePicker } from '@mui/x-date-pickers-pro/DateRangePicker';
 import { useTodoListSearchDialog } from "@/hooks/dialog/useTodoListSearchDialog";
-import { EXISTENCE_OPTIONS, TAGS } from "@/utils/utils";
-import { TextareaAutosize as BaseTextareaAutosize } from '@mui/base/TextareaAutosize';
+import { EXISTENCE_OPTIONS } from "@/utils/utils";
 
 interface TodoListSearchModalProps {
   open: boolean;
@@ -19,7 +18,6 @@ interface TodoListSearchModalProps {
 export const TodoListSearchModal: React.FC<TodoListSearchModalProps> = ({ open, onClose }) => {
   const {
     register,
-    errors,
     onSubmit,
     handleTagChange,
     isTagsActive,

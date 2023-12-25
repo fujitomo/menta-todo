@@ -4,8 +4,8 @@ import { Profile } from '@/types/profile';
 import { User } from '@/types/auth';
 import { useCallback } from 'react';
 import { useNotifications } from '@/hooks/useNotifications';
-import { axiosService } from '@/utils/axiosService';
-import Cookies from 'js-cookie';
+import { AxiosResponse, axiosService } from '@/utils/axiosService';
+import Cookies from "js-cookie";
 import { State, TodoCard } from '@/recoilAtoms/recoilState';
 import { SearchConditions, TodoDetail } from '@/types/todos';
 import { useRecoilDataSync } from './useRecoilDataSync';
@@ -17,6 +17,7 @@ import { downloadAllAttachments, downloadAttachment, formatDate } from '@/utils/
 //     data?: T;vscode-file://vscode-app/c:/Users/fujit/AppData/Local/Programs/Microsoft%20VS%20Code/resources/app/out/vs/code/electron-sandbox/workbench/workbench.html
 //     headers?: Record<string, string>;
 // };
+
 
 export function useAPI() {
     const errorMessagesNetwork = "インターネットに接続できていない可能性があります。"
@@ -43,6 +44,7 @@ export function useAPI() {
             switch (res.statusCode) {
                 case 200:
                     const payload = res.payload as { accesstoken: string };
+                    console.log("r", payload.accesstoken);
                     Cookies.set('accessToken', payload.accesstoken);
                     notifications.confirmed({ id: id, state: State.SUCCESS });
                     break;
@@ -91,8 +93,7 @@ export function useAPI() {
 
             switch (res.statusCode) {
                 case 200:
-                    const payload = res.payload as { accesstoken: string };
-                    Cookies.set('accessToken', payload.accesstoken);
+                    updateTokenFromResponse(res);
                     notifications.confirmed({ id: id, state: State.SUCCESS });
                     break;
                 case 401:
@@ -133,7 +134,7 @@ export function useAPI() {
                 };
 
                 const res = await axiosService.post({
-                    url: '/auth/update_email_authentication',
+                    url: '/auth/email_authentication',
                     data: { onetimepassword: onetimePassword },
                     headers: headers
                 });
@@ -194,9 +195,7 @@ export function useAPI() {
 
                 switch (res.statusCode) {
                     case 200:
-                        const payload = res.payload as { accesstoken: string; refreshtoken: string };
-                        Cookies.set('accessToken', payload.accesstoken);
-                        Cookies.set('refreshToken', payload.refreshtoken);
+                        updateTokenFromResponse(res);
                         notifications.confirmed({ id: id, state: State.SUCCESS2 });
                         break;
                     case 409:
@@ -276,7 +275,7 @@ export function useAPI() {
                 if (refreshToken) {
                     headers["refreshtoken"] = refreshToken;
                 }
-
+                console.log("tre")
                 const res = await axiosService.get({
                     url: '/auth/get_profile',
                     headers
@@ -289,6 +288,7 @@ export function useAPI() {
 
                 switch (res.statusCode) {
                     case 200:
+                        updateTokenFromResponse(res);
                         if (res.payload) {
                             const payload = res.payload as { user_name: string, email: string, birthday: Date, avatar_photo: string };
                             const downloadedFile = await downloadAttachment(payload.avatar_photo);
@@ -370,6 +370,7 @@ export function useAPI() {
 
             switch (res.statusCode) {
                 case 200:
+                    updateTokenFromResponse(res);
                     if (res.payload) {
                         const payload = res.payload as TodoCard[];
 
@@ -422,14 +423,13 @@ export function useAPI() {
             const headers = {
                 Authorization: "Bearer " + accessToken,
                 "refreshtoken": refreshToken,
-                // "Content-Type": "multipart/form-data"
             };
 
             const formData = new FormData();
-
-            if (todoDetail.attachments) {
+            const sortedAttachments = todoDetail.attachments?.filter(file => file !== undefined) ?? [];
+            if (sortedAttachments) {
                 // Loop through the attachments array and append each file to the form data
-                todoDetail.attachments.forEach((file) => {
+                sortedAttachments.forEach((file) => {
                     // ここで、単一のファイルをFormDataに追加します。
                     formData.append('attachments', file);
                 });
@@ -453,6 +453,7 @@ export function useAPI() {
 
             switch (res.statusCode) {
                 case 200:
+                    updateTokenFromResponse(res);
                     const payload = res.payload as { accesstoken: string };
                     Cookies.set('accessToken', payload.accesstoken);
                     notifications.confirmed({ id: id, state: State.SUCCESS });
@@ -497,7 +498,6 @@ export function useAPI() {
             formData.append("request_model", JSON.stringify({
                 user_name: profile.userName,
                 birthday: formatDate(profile.birthday, "-"),
-                attachment: profile.attachment,
             }));
 
             const res = await axiosService.post({
@@ -508,6 +508,7 @@ export function useAPI() {
 
             switch (res.statusCode) {
                 case 200:
+                    updateTokenFromResponse(res);
                     if (res.payload) {
                         const payload = res.payload as { user_name: string, birthday: Date, attachment: File };
 
@@ -551,18 +552,18 @@ export function useAPI() {
                 "refreshtoken": refreshToken,
             };
             const formData = new FormData();
-
+            console.log("test", profile.attachment)
             if (profile.attachment) {
-                formData.append('attachment', profile.attachment);
+                formData.append('file', profile.attachment);
             }
+
             formData.append("request_model", JSON.stringify({
                 user_name: profile.userName,
-                birthday: formatDate(profile.birthday, "-"),
-                attachment: profile.attachment,
+                birthday: formatDate(profile.birthday, "-")
             }));
 
-
-
+            Cookies.remove('accessToken');
+            console.log(formData)
             const res = await axiosService.post({
                 url: '/auth/update_profile',
                 data: formData,
@@ -571,8 +572,7 @@ export function useAPI() {
 
             switch (res.statusCode) {
                 case 200:
-                    const payload = res.payload as { accesstoken: string };
-                    Cookies.set('accessToken', payload.accesstoken);
+                    updateTokenFromResponse(res);
                     notifications.confirmed({ id: id, state: State.SUCCESS });
                     break;
                 case 409:
@@ -615,8 +615,7 @@ export function useAPI() {
 
             switch (res.statusCode) {
                 case 200:
-                    const payload = res.payload as { accesstoken: string };
-                    Cookies.set('accessToken', payload.accesstoken);
+                    updateTokenFromResponse(res);
                     notifications.confirmed({ id: id, state: State.SUCCESS });
                     break;
                 case 422:
@@ -652,10 +651,10 @@ export function useAPI() {
             };
 
             const formData = new FormData();
-
-            if (todoDetail.attachments) {
+            const sortedAttachments = todoDetail.attachments?.filter(file => file !== undefined) ?? [];
+            if (sortedAttachments) {
                 // Loop through the attachments array and append each file to the form data
-                todoDetail.attachments.forEach((file) => {
+                sortedAttachments.forEach((file) => {
                     // ここで、単一のファイルをFormDataに追加します。
                     formData.append('attachments', file);
                 });
@@ -672,7 +671,7 @@ export function useAPI() {
                 color: todoDetail.color,
                 current_state: todoDetail.currentState
             }));
-
+            console.log("test", formData)
             const res = await axiosService.post({
                 url: '/todo/update_todo',
                 data: formData,
@@ -681,8 +680,7 @@ export function useAPI() {
 
             switch (res.statusCode) {
                 case 200:
-                    const payload = res.payload as { accesstoken: string };
-                    Cookies.set('accessToken', payload.accesstoken);
+                    updateTokenFromResponse(res);
                     notifications.confirmed({ id: id, state: State.SUCCESS });
                     break;
                 case 409:
@@ -723,8 +721,7 @@ export function useAPI() {
 
             switch (res.statusCode) {
                 case 200:
-                    const payload = res.payload as { accesstoken: string };
-                    Cookies.set('accessToken', payload.accesstoken);
+                    updateTokenFromResponse(res);
                     notifications.confirmed({ id: id, state: State.SUCCESS });
                     break;
                 case 409:
@@ -765,8 +762,8 @@ export function useAPI() {
 
             switch (res.statusCode) {
                 case 200:
+                    updateTokenFromResponse(res);
                     const payload = res.payload as { accesstoken: string, todo_id: string, title: string, description: string, date_start: Date, date_end: Date, tags: string[], current_state: string, attachments: string[], color: string };
-                    Cookies.set('accessToken', payload.accesstoken);
                     //添付ファイルのダウンロード
                     const attachments = payload.attachments; // これは添付ファイルのURLが格納された配列です
                     const downloadedFiles = await downloadAllAttachments(attachments);
@@ -813,6 +810,13 @@ export function useAPI() {
         }
     };
 
+
+    const updateTokenFromResponse = (res: AxiosResponse) => {
+        const newToken = (res.headers as { [key: string]: string })?.["newtoken"];
+        if (newToken) {
+           Cookies.set('accessToken', newToken);
+        }
+      };
 
     return {
         createUser,

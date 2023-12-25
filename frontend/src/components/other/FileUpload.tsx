@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Box, Button, Dialog, Input, TextField, styled } from '@mui/material';
+import React from 'react';
+import { Box, Button, Dialog, Input, TextField } from '@mui/material';
 import { useFileUpload } from '@/hooks/other/useFileUpload';
-import { on } from 'events';
 
 
 type FileUploadProps = {
@@ -20,7 +19,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
     errorMessage,
     label,
     value,
-    tmpFile
+    tmpFile,
 }) => {
 
     const {

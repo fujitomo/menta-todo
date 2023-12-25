@@ -24,7 +24,6 @@ export const useSignUpForm = () => {
   const schema = getValidationSchema();
   const {
     register,
-    setValue,
     handleSubmit,
     formState: { errors },
     getValues,

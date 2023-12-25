@@ -40,7 +40,7 @@ async def endpoint(
     # DBのコレクションを定義
     collection = db[COLLLECTION.TODO]
     token_info: AuthFuncs.TokenPayload = request.state.token_info
-    TodoFuncs.check_tododata(attachments, request_model)
+    await TodoFuncs.check_tododata(attachments, request_model)
 
     old_data = await collection.find_one(
                      {"$and": [{TODO.TODO_ID: request_model.todo_id},

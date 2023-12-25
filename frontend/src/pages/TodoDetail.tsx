@@ -1,6 +1,6 @@
 import { Autocomplete, Box, TextField, Typography } from "@mui/material";
 import Link from "next/link";
-import React, { useState } from "react";
+import React from "react";
 import LoadingButton from '@mui/lab/LoadingButton';
 import { TodoDetail } from "@/types/todos";
 import { useTodoDetail } from "@/hooks/pages/useTodoDetail";
@@ -12,8 +12,7 @@ import 'dayjs/locale/ja';
 import ColorPickerComponent from "@/components/other/ColorPicker";
 import ConfirmDialog from "@/components/dialog/ConfirmDialog";
 
-import { checkLogin, loginCheckRedirect, redirectToLogin } from "@/utils/utils";
-import { parse } from "cookie";
+import { loginCheckRedirect } from "@/utils/utils";
 import 'dayjs/locale/ja'; // 日本語のロケールをインポート
 import { GetServerSidePropsContext, GetServerSidePropsResult } from "next";
 

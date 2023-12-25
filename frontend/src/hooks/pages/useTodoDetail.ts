@@ -147,7 +147,8 @@ export const useTodoDetail = () => {
         for (let i = 0; i < Math.min(todoAttachments.length, 5); i++) {
           const attachment = todoAttachments[i];
           if (attachment instanceof File) {
-            handleFileChange(`attachments[${i}]`, attachment);
+            const newFile = new File([attachment], "登録済みファイル", { type: attachment.type });
+            handleFileChange(`attachments[${i}]`, newFile);
             tmpFiles.push(attachment);
           }
           setTmpFiles(tmpFiles);

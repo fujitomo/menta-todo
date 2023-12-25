@@ -14,8 +14,6 @@ logger = logging.getLogger(__name__)
 class AccessHandlingMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         BEARER_PREFIX = 'Bearer '
-
-        # Extract relevant headers
         access_token = request.headers.get('authorization', '')
         refresh_token = request.headers.get('refreshtoken')
         url_path = request.url.path
@@ -25,6 +23,7 @@ class AccessHandlingMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         access_token = access_token.replace(BEARER_PREFIX, '')
+        print("access_token", access_token)
         token_info = ""
         new_token = None
 

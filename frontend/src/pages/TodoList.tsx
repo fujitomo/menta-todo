@@ -1,8 +1,7 @@
 
-import { checkLogin, loginCheckRedirect, redirectToLogin } from "@/utils/utils";
+import { loginCheckRedirect } from "@/utils/utils";
 import { Box, Button, Fab, Grid, Typography } from "@mui/material";
 import Link from 'next/link';
-import { parse } from "cookie";
 import 'dayjs/locale/ja'; // 日本語のロケールをインポート
 import { GetServerSidePropsContext, GetServerSidePropsResult } from "next";
 import React from "react";

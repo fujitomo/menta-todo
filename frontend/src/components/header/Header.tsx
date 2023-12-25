@@ -1,18 +1,15 @@
-import { AppBar, Avatar, Box, Tab, Tabs, Typography } from "@mui/material";
+import { AppBar, Avatar, Box, Typography } from "@mui/material";
 import { useHeader } from "@/hooks/header/useHeader";
 import { UpdatePopover } from "../Popover/UpdatePopover";
-import { useUpdatePopover } from "@/hooks/Popover/useUpdatePopover";
 
 export default function Header() {
-  const { avatarURL } = useHeader();
   const {
     getAnchorEl,
     isOpenUpdatePopover,
     handleSortButtonClick,
-    userName,
-    email,
     handleOpenPopover,
-    isDisplayAvatar
+    isDisplayAvatar,
+    recoilProfileValues
   } = useHeader();
 
   return (
@@ -27,7 +24,7 @@ export default function Header() {
               {isDisplayAvatar && (
                 <Avatar
                   alt="アバター画像"
-                  src={avatarURL}
+                  src={recoilProfileValues.attachmentURL}
                   className="w-14 h-14 my-1 cursor-pointer"
                   onClick={handleOpenPopover}
                 />
@@ -40,8 +37,8 @@ export default function Header() {
         anchorEl={getAnchorEl()}
         onClose={() => { handleSortButtonClick(); }}
         open={isOpenUpdatePopover()}
-        userName={userName}
-        email={email}
+        userName={recoilProfileValues.userName}
+        email={recoilProfileValues.email}
       />
     </>
   );

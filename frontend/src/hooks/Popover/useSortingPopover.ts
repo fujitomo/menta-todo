@@ -1,9 +1,7 @@
 import { useRecoilValue, useSetRecoilState } from 'recoil';
-import { useNotifications } from '../useNotifications';
 import { todoListState } from '@/recoilAtoms/recoilState';
 
 export const useSortingPopover = () => {
-  const notifications = useNotifications();
 
   const currentTodoList = useRecoilValue(todoListState);
   const setTodoListState = useSetRecoilState(todoListState);

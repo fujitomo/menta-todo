@@ -29,6 +29,7 @@ export default function Login() {
             className="w-11/12 mb-10"
             color="success"
             required
+            autoComplete="email"
             inputProps={{ maxLength: 40, className: "text-2xl" }}
             label="メールアドレス"
             type="email"

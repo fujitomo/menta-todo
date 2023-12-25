@@ -1,5 +1,5 @@
 import { useRouter } from 'next/router';
-import Cookies from 'js-cookie';
+import Cookies from "js-cookie";
 
 export const useUpdatePopover = () => {
   const router = useRouter();

@@ -1,4 +1,3 @@
-import React, { useState } from "react";
 import { Popover, Typography, List, ListItem, ListItemText } from "@mui/material";
 import { useSortingPopover } from "@/hooks/Popover/useSortingPopover";
 
@@ -32,8 +31,8 @@ export const SortingPopover: React.FC<SortingPopoverProps> = ({ anchorEl, onClos
       <Typography variant="h6" className="text-gray-300 ml-4">並び替え</Typography>
       <List>
         {sortingOptions.map((option) => (
-          <ListItem key={option.value} onClick={() => handleItemClick(option.value, onClose)}>
-            <ListItemText primary={option.label} />
+          <ListItem key={option.value} onClick={() => handleItemClick(option.value, onClose)} className="hover:bg-gray-100">
+            <ListItemText primary={option.label}  className="cursor-pointer"  />
           </ListItem>
         ))}
       </List>

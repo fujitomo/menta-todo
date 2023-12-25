@@ -1,5 +1,5 @@
 import { useRouter } from 'next/router';
-import { SubmitHandler, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useAPI } from "@/hooks/useAPI";
@@ -37,10 +37,8 @@ export const useUpLoginPassword = () => {
   const schema = getValidationSchema();
   const {
     register,
-    setValue,
     handleSubmit,
     formState: { errors },
-    getValues,
   } = useForm<UpdatePassword>({
     resolver: yupResolver(schema),
   });

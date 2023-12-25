@@ -1,5 +1,4 @@
-import { TransitionDetail } from './../../recoilAtoms/recoilState';
-import { use, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import dayjs from "dayjs";
 import Cookies from "js-cookie";

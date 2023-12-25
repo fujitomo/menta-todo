@@ -64,7 +64,6 @@ export const todoListState = atom<TodoCard[]>({
   ],
 });
 
-
 export const displayAvatar = atom<boolean>({
   key: 'displayAvatar',
   default: false,
@@ -102,7 +101,6 @@ export enum  Transition {
   UPDATE = "更新",
 }
 
-
 export interface TransitionDetail {
   TransitionDetail: Transition | null;
   todoId: string | null;
@@ -116,5 +114,21 @@ export const TransitionDetail = atom<TransitionDetail>({
   },
 });
 
+
+export interface Profile {
+  userName: string;
+  email: string;
+  birthday?: Date;
+  attachmentURL?: string;
+}
+
+export const profileValues = atom<Profile>({
+  key: 'profileState',
+  default: {
+    userName: "",
+    email: "",
+    attachmentURL: "",
+  },
+});
 
 

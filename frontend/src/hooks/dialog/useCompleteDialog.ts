@@ -13,7 +13,7 @@ export const useCompleteDialog = () => {
     }
 
     const onSubmitCompleteClose = () => {
-        router.push("/Profile");
+        router.push("/TodoList");
     };
 
     return {

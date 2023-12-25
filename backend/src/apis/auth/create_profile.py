@@ -16,7 +16,7 @@ from pydantic import BaseModel
 
 
 class RequestModel(MultiPartModel):
-    username: Optional[str] = None
+    user_name: Optional[str] = None
     birthday: Optional[date] = None
     avatar_name: Optional[str] = None
 
@@ -64,9 +64,11 @@ async def endpoint(
             {REGISTRANT.USER_ID: token_info.user_id},
             {REGISTRANT.DELETE_DATE: None}]},
         {"$set": {
-            REGISTRANT.USER_NAME: request_model.username,
+            REGISTRANT.USER_NAME: request_model.user_name,
             REGISTRANT.BIRTHDAY:  UtilFuncs.get_date_isoformat(request_model.birthday),
             REGISTRANT.AVATAR_NAME:  request_model.avatar_name,
+            REGISTRANT.AVATAR_PHOTO: None,
+            REGISTRANT.AVATAR_PHOTO_HASH: None,
             REGISTRANT.UPDATE_DATE: UtilFuncs.get_now_isodatetime()
         }},
     )
