@@ -53,6 +53,7 @@ async def endpoint(request: Request,
     if is_email_exists:
         ExceptionFuncs.raise_conflict(ERROR_MESSAGE.DUPLICATED)
 
+    # メールアドレスが登録されているか確認
     is_email_exists = await AuthFuncs.email_exists(collection, email, False)
     onePassword = AuthFuncs.random_name(6)
     # パスワードをハッシュ化

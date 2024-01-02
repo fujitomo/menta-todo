@@ -76,6 +76,10 @@ async def endpoint(
     if result.matched_count == 0:
         ExceptionFuncs.raise_not_found(ERROR_MESSAGE.NOT_FOUND)
 
+    attachments_bytes = await attachment.read()
+    if len(attachments_bytes) > SETTINGS.MAX_UPLOADFILE_SIZE:
+        ExceptionFuncs.raise_entity_too_large("アップロードファイルが2MBより大きいです。")
+
     if attachment:
         file_byte = await attachment.read()
         hs = hashlib.md5(file_byte).hexdigest()

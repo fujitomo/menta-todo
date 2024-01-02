@@ -48,13 +48,17 @@ export function useAPI() {
                     Cookies.set('accessToken', payload.accesstoken);
                     notifications.confirmed({ id: id, state: State.SUCCESS });
                     break;
+                case 400:
+                    notifications.rejected({ id: id, state: State.ERROR, message: "登録値が不正です。" });
+                    break;
                 case 409:
                     notifications.rejected({ id: id, state: State.ERROR, message: "既に登録されています。" });
                     break;
-                case 401:
-                    notifications.rejected({
-                        id: id, state: State.ERROR, message: `401エラー：ワンタイムパスワードを間違えている可能性があります。\n
-                    または、ワンタイムパスワードの1日あたりの生成回数上限に達している可能性があります。` });
+                case 404:
+                    notifications.rejected({ id: id, state: State.ERROR, message: "データが存在しません。" });
+                    break;
+                case 500:
+                    notifications.rejected({ id: id, state: State.ERROR, message: "登録に失敗しました。" });
                     break;
                 default:
                     notifications.rejected({ id: id, state: State.ERROR, message: `${res.statusCode}：エラー` });
@@ -96,19 +100,16 @@ export function useAPI() {
                     updateTokenFromResponse(res);
                     notifications.confirmed({ id: id, state: State.SUCCESS });
                     break;
-                case 401:
-                    notifications.rejected({
-                        id: id, state: State.ERROR, message: `401エラー：ワンタイムパスワードを間違えている可能性があります。\n
-                    または、ワンタイムパスワードの1日あたりの生成回数上限に達している可能性があります。` });
+                case 400:
+                    notifications.rejected({ id: id, state: State.ERROR, message: "無効なメールアドレスです。" });
                     break;
                 case 404:
                     notifications.rejected({
-                        id: id, state: State.ERROR, message: `404エラー：データが存在しない可能性があります。\n
-                        または、インターネットに接続出来ていない可能性があります。` });
+                        id: id, state: State.ERROR, message: "データが存在しない。" });
                     break;
                 case 409:
                     notifications.rejected({
-                        id: id, state: State.ERROR, message: `409エラー：すでに登録されているメールアドレスです。` });
+                        id: id, state: State.ERROR, message: "既に登録されています。" });
                     break;
                 default:
                     notifications.rejected({ id: id, state: State.ERROR, message: `${res.statusCode}：エラー` });
@@ -150,13 +151,15 @@ export function useAPI() {
                         Cookies.set('refreshToken', payload.refreshtoken);
                         notifications.confirmed({ id: id, state: State.SUCCESS2 });
                         break;
-                    case 409:
-                        notifications.rejected({ id: id, state: State.ERROR2, message: "409エラー：既に登録されています。" });
-                        break;
                     case 401:
-                        notifications.rejected({
-                            id: id, state: State.ERROR2, message: `401エラー：ワンタイムパスワードを間違えている可能性があります。\n
-                        または、ワンタイムパスワードの1日あたりの生成回数上限に達している可能性があります。`});
+                        notifications.rejected({ id: id, state: State.ERROR2, message: `ワンタイムパスワードを間違えている可能性があります。\n
+                            または、ワンタイムパスワードの1日あたりの生成回数上限に達している可能性があります。`});
+                            break;
+                    case 404:
+                        notifications.rejected({ id: id, state: State.ERROR2, message: "データが登録されていません。" });
+                        break;
+                    case 409:
+                        notifications.rejected({ id: id, state: State.ERROR2, message: "既に登録されています。" });
                         break;
                     default:
                         notifications.rejected({ id: id, state: State.ERROR2, message: `${res.statusCode}エラー` });
@@ -198,13 +201,14 @@ export function useAPI() {
                         updateTokenFromResponse(res);
                         notifications.confirmed({ id: id, state: State.SUCCESS2 });
                         break;
-                    case 409:
-                        notifications.rejected({ id: id, state: State.ERROR2, message: "409エラー：既に登録されています。" });
-                        break;
                     case 401:
                         notifications.rejected({
-                            id: id, state: State.ERROR2, message: `401エラー：ワンタイムパスワードを間違えている可能性があります。\n
-                        または、ワンタイムパスワードの1日あたりの生成回数上限に達している可能性があります。`});
+                            id: id, state: State.ERROR2, message: `ワンタイムパスワードを間違えている可能性があります。\n
+                            または、ワンタイムパスワードの1日あたりの生成回数上限に達している可能性があります。` });
+                        break;
+                    case 404:
+                        notifications.rejected({
+                            id: id, state: State.ERROR2, message: "登録メールアドレスが見つかりません。"});
                         break;
                     default:
                         notifications.rejected({ id: id, state: State.ERROR2, message: `${res.statusCode}エラー` });
@@ -239,9 +243,6 @@ export function useAPI() {
                     Cookies.set('accessToken', payload.accesstoken);
                     Cookies.set('refreshToken', payload.refreshtoken);
                     notifications.confirmed({ id: id, state: State.SUCCESS });
-                    break;
-                case 409:
-                    notifications.rejected({ id: id, state: State.ERROR, message: '既に登録されています。' });
                     break;
                 case 401:
                     notifications.rejected({
@@ -302,15 +303,8 @@ export function useAPI() {
                             return profile;
                         }
                         break;
-                    case 409:
-                        notifications.rejected({ id: id, state: State.ERROR, message: '既に登録されています。' });
-                        break;
-                    case 401:
-                        notifications.rejected({
-                            id: id,
-                            state: State.ERROR,
-                            message: "メールアドレスまたはパスワードが正しくありません",
-                        });
+                    case 404:
+                        notifications.rejected({ id: id, state: State.ERROR, message: 'プロフィールデータが登録されていません。' });
                         break;
                     default:
                         notifications.rejected({ id: id, state: State.ERROR, message: `${res.statusCode}：エラー` });
@@ -396,11 +390,11 @@ export function useAPI() {
                     }
                     notifications.confirmed({ id: id, state: State.SUCCESS });
                     break;
-                case 404:
-                    //データなし
-                    setTodoCardList({ todoCardList: [] as TodoCard[] });
-                    notifications.rejected({ id: id, state: State.ERROR, message: "TODOデータが存在しません" });
-                    break;
+                // case 404:
+                //     //データなし
+                //     setTodoCardList({ todoCardList: [] as TodoCard[] });
+                //     notifications.rejected({ id: id, state: State.ERROR, message: "TODOデータが存在しません" });
+                //     break;
                 default:
                     //TODO: 空の配列を返すのは必要？
                     setTodoCardList({ todoCardList: [] as TodoCard[] });
@@ -458,13 +452,14 @@ export function useAPI() {
                     Cookies.set('accessToken', payload.accesstoken);
                     notifications.confirmed({ id: id, state: State.SUCCESS });
                     break;
-                case 409:
-                    notifications.rejected({ id: id, state: State.ERROR, message: "既に登録されています。" });
+                case 400:
+                    notifications.rejected({ id: id, state: State.ERROR, message: "登録値に不正があります。" });
                     break;
-                case 401:
-                    notifications.rejected({
-                        id: id, state: State.ERROR, message: `401エラー：ワンタイムパスワードを間違えている可能性があります。\n
-                    または、ワンタイムパスワードの1日あたりの生成回数上限に達している可能性があります。` });
+                case 413:
+                    notifications.rejected({ id: id, state: State.ERROR, message: "アップロードファイルに2MBより大きいものがあります。" });
+                    break;
+                case 500:
+                    notifications.rejected({ id: id, state: State.ERROR, message: "登録に失敗しました。" });
                     break;
                 default:
                     notifications.rejected({ id: id, state: State.ERROR, message: `${res.statusCode}：エラー` });
@@ -522,13 +517,15 @@ export function useAPI() {
                     }
                     notifications.confirmed({ id: id, state: State.SUCCESS });
                     break;
+                case 404:
+                    notifications.rejected({
+                        id: id, state: State.ERROR, message: "ファイルデータ登録に失敗しました。" });
+                    break;
                 case 409:
                     notifications.rejected({ id: id, state: State.ERROR, message: "既に登録されています。" });
                     break;
-                case 401:
-                    notifications.rejected({
-                        id: id, state: State.ERROR, message: `401エラー：ワンタイムパスワードを間違えている可能性があります。\n
-                    または、ワンタイムパスワードの1日あたりの生成回数上限に達している可能性があります。` });
+                case 413:
+                    notifications.rejected({ id: id, state: State.ERROR, message: "アップロードファイルに2MBより大きいものがあります。" });
                     break;
                 default:
                     notifications.rejected({ id: id, state: State.ERROR, message: `${res.statusCode}：エラー` });
@@ -575,13 +572,8 @@ export function useAPI() {
                     updateTokenFromResponse(res);
                     notifications.confirmed({ id: id, state: State.SUCCESS });
                     break;
-                case 409:
-                    notifications.rejected({ id: id, state: State.ERROR, message: "既に登録されています。" });
-                    break;
-                case 401:
-                    notifications.rejected({
-                        id: id, state: State.ERROR, message: `401エラー：ワンタイムパスワードを間違えている可能性があります。\n
-                    または、ワンタイムパスワードの1日あたりの生成回数上限に達している可能性があります。` });
+                case 404:
+                    notifications.rejected({ id: id, state: State.ERROR, message: "プロフィールデータが登録されていません。" });
                     break;
                 default:
                     notifications.rejected({ id: id, state: State.ERROR, message: `${res.statusCode}：エラー` });
@@ -618,13 +610,12 @@ export function useAPI() {
                     updateTokenFromResponse(res);
                     notifications.confirmed({ id: id, state: State.SUCCESS });
                     break;
-                case 422:
+                case 400:
                     notifications.rejected({ id: id, state: State.ERROR, message: "更新前パスワードが間違っています。。" });
                     break;
-                case 401:
+                case 404:
                     notifications.rejected({
-                        id: id, state: State.ERROR, message: `401エラー：ワンタイムパスワードを間違えている可能性があります。\n
-                    または、ワンタイムパスワードの1日あたりの生成回数上限に達している可能性があります。` });
+                        id: id, state: State.ERROR, message: `登録データが見つかりません。` });
                     break;
                 default:
                     notifications.rejected({ id: id, state: State.ERROR, message: `${res.statusCode}：エラー` });
@@ -671,7 +662,7 @@ export function useAPI() {
                 color: todoDetail.color,
                 current_state: todoDetail.currentState
             }));
-            console.log("test", formData)
+
             const res = await axiosService.post({
                 url: '/todo/update_todo',
                 data: formData,
@@ -683,13 +674,17 @@ export function useAPI() {
                     updateTokenFromResponse(res);
                     notifications.confirmed({ id: id, state: State.SUCCESS });
                     break;
-                case 409:
-                    notifications.rejected({ id: id, state: State.ERROR, message: "既に登録されています。" });
+                case 400:
+                    notifications.rejected({ id: id, state: State.ERROR, message: "登録値に不正があります。" });
                     break;
-                case 401:
-                    notifications.rejected({
-                        id: id, state: State.ERROR, message: `401エラー：ワンタイムパスワードを間違えている可能性があります。\n
-                    または、ワンタイムパスワードの1日あたりの生成回数上限に達している可能性があります。` });
+                case 404:
+                    notifications.rejected({ id: id, state: State.ERROR, message: "登録対象データが見つかりませんでした。" });
+                    break;
+                case 413:
+                    notifications.rejected({ id: id, state: State.ERROR, message: "アップロードファイルに2MBより大きいものがあります。" });
+                    break;
+                case 500:
+                    notifications.rejected({ id: id, state: State.ERROR, message: "登録に失敗しました。" });
                     break;
                 default:
                     notifications.rejected({ id: id, state: State.ERROR, message: `${res.statusCode}：エラー` });
@@ -724,13 +719,12 @@ export function useAPI() {
                     updateTokenFromResponse(res);
                     notifications.confirmed({ id: id, state: State.SUCCESS });
                     break;
-                case 409:
-                    notifications.rejected({ id: id, state: State.ERROR, message: "既に登録されています。" });
+                case 404:
+                    notifications.rejected({ id: id, state: State.ERROR, message: "削除対象データが見つかりません。" });
                     break;
-                case 401:
+                case 500:
                     notifications.rejected({
-                        id: id, state: State.ERROR, message: `401エラー：ワンタイムパスワードを間違えている可能性があります。\n
-                    または、ワンタイムパスワードの1日あたりの生成回数上限に達している可能性があります。` });
+                        id: id, state: State.ERROR, message: `削除処理に失敗しました。` });
                     break;
                 default:
                     notifications.rejected({ id: id, state: State.ERROR, message: `${res.statusCode}：エラー` });
@@ -782,13 +776,8 @@ export function useAPI() {
                     notifications.confirmed({ id: id, state: State.STANDBY }); //更新画面を開いたときに、SUCCESSだと画面が閉じるためSTANDBY
                     return todoDetail;
 
-                case 409:
-                    notifications.rejected({ id: id, state: State.ERROR, message: "既に登録されています。" });
-                    break;
-                case 401:
-                    notifications.rejected({
-                        id: id, state: State.ERROR, message: `401エラー：ワンタイムパスワードを間違えている可能性があります。\n
-                    または、ワンタイムパスワードの1日あたりの生成回数上限に達している可能性があります。` });
+                case 404:
+                    notifications.rejected({ id: id, state: State.ERROR, message: "対象データが見つかりません。" });
                     break;
                 default:
                     notifications.rejected({ id: id, state: State.ERROR, message: `${res.statusCode}：エラー` });
