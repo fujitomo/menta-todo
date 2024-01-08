@@ -88,7 +88,7 @@ export default function SignUpForm() {
               </a>
             </Link>
           </Box>
-          <AuthModal email_mode={ EMAIL_MODE.AUTHENTICATION } />
+          <AuthModal emailMode={ EMAIL_MODE.AUTHENTICATION } />
           <CompleteDialog />
         </Box>
       </Box>

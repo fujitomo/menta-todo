@@ -1,8 +1,11 @@
 import { useRouter } from 'next/router';
 import Cookies from "js-cookie";
+import { useNotifications } from '../useNotifications';
+import { State } from '@/recoilAtoms/recoilState';
 
 export const useUpdatePopover = () => {
   const router = useRouter();
+  const notifications = useNotifications();
 
   function handleItemClick(value: string, onClose: () => void) {
     switch (value) {
@@ -24,6 +27,7 @@ export const useUpdatePopover = () => {
   const handleLogout = (onClose: () => void) => {
     Cookies.remove('accessToken');
     Cookies.remove('refreshToken');
+    notifications.confirmed({ id: "useUpdatePopover", state: State.STANDBY });
     onClose();
     router.push('/Login');
   }

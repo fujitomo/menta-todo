@@ -25,15 +25,14 @@ export default function TodoList() {
     handleDialogClose,
     onDelete,
     handleDialogOpen,
-    handleUpdateLink
+    handleUpdateLink,
+    getTodoCardList
   } = useTodoList();
 
   const {
     handleShouldOpenSearchModal,
     isShouldOpenSearchModal
   } = useTodoListSearchDialog();
-
-  const todoListNotifications = useTodoList();
 
   return (
     <>
@@ -103,7 +102,7 @@ export default function TodoList() {
               {sectionTitle}
             </Typography>
             <Box className="max-h-[61vh] overflow-y-auto">
-              {todoListNotifications.getTodoCardList(sectionTitle).map((todo) => (
+              {getTodoCardList(sectionTitle).map((todo) => (
                 <TodoCard key={todo.todoId} todo={todo} />
               ))}
             </Box>

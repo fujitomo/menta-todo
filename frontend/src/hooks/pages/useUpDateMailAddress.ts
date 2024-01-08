@@ -27,12 +27,14 @@ export const useUpDateMailAddress = () => {
     formState: { errors },
     getValues,
   } = useForm<User>({
+    // @ts-ignore
     resolver: yupResolver(schema),
   });
 
   const onSubmitUpdateEmail: SubmitHandler<User> = async () => {
     const accessToken = Cookies.get("accessToken");
     const refreshToken = Cookies.get("refreshToken");
+    console.log(accessToken)
     await updateEmail(accessToken, refreshToken, getValues().email);
   };
 
@@ -46,7 +48,8 @@ export const useUpDateMailAddress = () => {
     errors,
     onSubmitUpdateEmail,
     isDialogOpen,
-    notifications
+    notifications,
+    getValues
   };
 };
 

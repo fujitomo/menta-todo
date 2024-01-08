@@ -17,13 +17,11 @@ class AccessHandlingMiddleware(BaseHTTPMiddleware):
         access_token = request.headers.get('authorization', '')
         refresh_token = request.headers.get('refreshtoken')
         url_path = request.url.path
-
         # not access_tokenは恐らくOPTIONSリクエストで1回呼ばれるため、ここで処理を抜ける（詳細は要調査）
         if url_path not in Endpoints.get_auth_required_endpoints() or not access_token:
             return await call_next(request)
 
         access_token = access_token.replace(BEARER_PREFIX, '')
-        print("access_token", access_token)
         token_info = ""
         new_token = None
 

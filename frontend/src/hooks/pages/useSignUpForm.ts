@@ -29,6 +29,7 @@ export const useSignUpForm = () => {
     getValues,
   } = useForm<User>({
     defaultValues: { onetimepassword: '' },
+    // @ts-ignore
     resolver: yupResolver(schema),
   });
 

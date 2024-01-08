@@ -32,6 +32,8 @@ class Endpoints:
     @staticmethod
     def get_auth_required_endpoints() -> List[str]:
         auth_required_endpoints = [
+            Endpoints.Auth.create_account,
+            Endpoints.Auth.update_email,
             Endpoints.Auth.email_authentication,
             Endpoints.Auth.update_email_authentication,
             Endpoints.Auth.create_profile,

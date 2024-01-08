@@ -1,7 +1,7 @@
-import { State, notificationsState } from "@/recoilAtoms/recoilState";
+import { State, notificationsState, profileValues } from "@/recoilAtoms/recoilState";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useRouter } from "next/router";
-import { useRecoilValue } from "recoil";
+import { useRecoilValue, useResetRecoilState } from "recoil";
 import { useEffect } from "react";
 
 export const useCompleteDialog = () => {
@@ -18,6 +18,8 @@ export const useCompleteDialog = () => {
     }
 
     const onSubmitCompleteClose = () => {
+        console.log("onSubmitCompleteClose");
+        //前回ログインユーザのプロフィール情報が残るのでリセット
         router.push("/TodoList");
     };
 

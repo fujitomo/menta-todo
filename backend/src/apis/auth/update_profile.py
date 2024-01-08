@@ -70,6 +70,9 @@ async def endpoint(
 
     if file:
         file_byte = await file.read()
+        if len(file_byte) > SETTINGS.MAX_UPLOADFILE_SIZE:
+            ExceptionFuncs.raise_entity_too_large("アップロードファイルが2MBより大きいです。")
+
         hs = FileManager.hash_binary_to_md5(file_byte)
         db_hs = await AuthFuncs.get_avatar_photo_hash(collection, token_info.user_id)
 

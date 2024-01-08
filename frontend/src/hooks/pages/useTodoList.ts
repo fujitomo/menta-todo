@@ -1,6 +1,6 @@
 import { useRecoilState, useRecoilValue } from 'recoil';
 import { Transition, searchConditionsState, todoListState, TransitionDetail } from '@/recoilAtoms/recoilState';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Cookies from "js-cookie";
 import { useAPI } from "@/hooks/useAPI";
 
@@ -18,7 +18,7 @@ export const useTodoList = () => {
      const [todoId, setTodoId] = useState("");
 
      // コンポーネントがマウントされた際にカード情報を取得
-     React.useEffect(() => {
+     useEffect(() => {
           console.log('カード情報を取得します');
           fetchCards();
      }, [searchConditions]);

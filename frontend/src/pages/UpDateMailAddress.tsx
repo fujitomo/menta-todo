@@ -23,6 +23,7 @@ export default function UpDateMailAdress() {
     onSubmitUpdateEmail,
     isDialogOpen,
     notifications,
+    getValues
   } = useUpDateMailAddress();
 
   return (
@@ -70,7 +71,7 @@ export default function UpDateMailAdress() {
             戻る
           </LoadingButton>
         </Link>
-        <AuthModal email_mode={EMAIL_MODE.UPDATE} />
+        <AuthModal emailMode={EMAIL_MODE.UPDATE} newEmail={getValues('email')} />
         <CompleteDialog />
       </Box>
     </Box>

@@ -52,6 +52,7 @@ export const useProfile = () => {
       birthday: undefined,
       attachment: undefined,
     },
+    // @ts-ignore
     resolver: yupResolver(schema),
   });
 
@@ -83,7 +84,6 @@ export const useProfile = () => {
     const accessToken = Cookies.get("accessToken");
     const refreshToken = Cookies.get("refreshToken");
     fetchData().then(async (profileData) => {
-      console.log(profileData);
       if (!profileData) {
         setMode("登録");
         setTransitionDetail(() => ({
@@ -91,8 +91,6 @@ export const useProfile = () => {
           todoId: null,
         }));
       } else {
-        console.log("更新");
-
         setMode("更新");
         if(profileData.attachment) {
           setTmpFileName("登録済みファイル");
@@ -101,27 +99,12 @@ export const useProfile = () => {
           TransitionDetail: Transition.UPDATE,
           todoId: null,
         }));
+        setValue("userName", profileData?.userName ?? "");
+        setBirthday(profileData?.birthday ? new Date(profileData?.birthday) : null);
+        handleDateChange("birthday", profileData?.birthday ?? null);
+        setTmpFile(profileData?.attachment);
       }
     });
-
-    if (accessToken !== undefined || refreshToken !== undefined) {
-      const fetchData = async () => {
-        const profile: typeProfile | { data: null; message: string } | null | undefined = await getProfile(accessToken, refreshToken);
-        return profile;
-      };
-
-
-      fetchData().then(async (profileData) => {
-        if (profileData) {
-          setValue("userName", profileData?.userName ?? "");
-          console.log("profile:", profileData?.attachment);
-          setBirthday(profileData?.birthday ? new Date(profileData?.birthday) : null);
-          handleDateChange("birthday", profileData?.birthday ?? null);
-          console.log(profileData?.attachment);
-          setTmpFile(profileData?.attachment);
-        }
-      });
-    }
   }, []);
 
   //フォーム送信時の処理
@@ -130,7 +113,6 @@ export const useProfile = () => {
       const accessToken = Cookies.get("accessToken");
       const refreshToken = Cookies.get("refreshToken");
       // APIエンドポイントからデータを取得（エンドポイントを適切に変更してください）
-      console.log(transition.TransitionDetail)
       if (transition.TransitionDetail === Transition.CREATE) {
         await createProfile(accessToken, refreshToken, profile);
       } else {

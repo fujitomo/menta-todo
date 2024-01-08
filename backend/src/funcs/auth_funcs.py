@@ -92,7 +92,7 @@ class AuthFuncs:
 
     # complieすると処理が速い
     repatter_email = re.compile(
-        r"^[a-zA-Z0-9_+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
+        r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)")
 
     @staticmethod
     def is_email_format(email: str):

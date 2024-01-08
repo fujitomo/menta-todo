@@ -52,7 +52,6 @@ export const useHeader = () => {
             userName: profileData.userName,
             email: profileData.email ? profileData.email : ""
           }
-           console.log("test2", profileData);
           setProfileValues(values);
         }
       });

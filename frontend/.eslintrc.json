@@ -1,6 +1,7 @@
 {
   "rules": {
-    "no-unused-vars": "off"
+    "no-unused-vars": "off",
+    "rule-name": "off"
   },
   "extends": "next/core-web-vitals"
 }

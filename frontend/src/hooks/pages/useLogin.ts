@@ -22,6 +22,7 @@ export const useLogin = () => {
     getValues,
   } = useForm<User>({
     defaultValues: { onetimepassword: ' ' },
+    // @ts-ignore
     resolver: yupResolver(schema),
   });
 

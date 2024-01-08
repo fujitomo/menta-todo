@@ -1,6 +1,7 @@
 import hashlib
 from datetime import date
 from typing import Optional
+from urllib.parse import urlparse
 
 from constants import BasicResponses, Endpoints, Tags
 from constants.models import MultiPartModel
@@ -76,14 +77,20 @@ async def endpoint(
     if result.matched_count == 0:
         ExceptionFuncs.raise_not_found(ERROR_MESSAGE.NOT_FOUND)
 
-    attachments_bytes = await attachment.read()
-    if len(attachments_bytes) > SETTINGS.MAX_UPLOADFILE_SIZE:
-        ExceptionFuncs.raise_entity_too_large("アップロードファイルが2MBより大きいです。")
-
     if attachment:
         file_byte = await attachment.read()
+        if len(file_byte) > SETTINGS.MAX_UPLOADFILE_SIZE:
+            ExceptionFuncs.raise_entity_too_large("アップロードファイルが2MBより大きいです。")
+
         hs = hashlib.md5(file_byte).hexdigest()
         file_manager = FileManager()
+        avatar_photo = await AuthFuncs.get_avatar_photo(collection, token_info.user_id)
+
+        parsed_url = urlparse(avatar_photo)
+
+        # Pathの部分だけを取得
+        path_only = parsed_url.path.lstrip('/')
+        file_manager.delete(f'{path_only}')
         avatar_image = file_manager.upload(
             file_byte,
             f'{token_info.user_id}/{SETTINGS.FOLDER_AVATAR_PHOTO}'

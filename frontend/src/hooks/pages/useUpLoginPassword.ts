@@ -3,12 +3,12 @@ import { useForm } from "react-hook-form";
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useAPI } from "@/hooks/useAPI";
-import { useRecoilValue } from "recoil";
+import { useRecoilState, useRecoilValue } from "recoil";
 import { State, notificationsState } from "@/recoilAtoms/recoilState";
 import { useNotifications } from "@/hooks/useNotifications";
 import { UpdatePassword } from "@/types/auth";
 import Cookies from "js-cookie";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const getValidationSchema = () => {
   let schema: { [key: string]: any } = {
@@ -24,15 +24,21 @@ const getValidationSchema = () => {
       .required("入力必須です。")
       .oneOf([yup.ref('newPassword'), ''], '新しいパスワードと一致しません'),
   };
-
   return yup.object(schema);
 };
 
 export const useUpLoginPassword = () => {
   const { updatePassword } = useAPI();
-  const notification = useRecoilValue(notificationsState);
+  const [notification] = useRecoilState(notificationsState);
   const notifications = useNotifications();
   const [openDialog, setOpenDialog] = useState(false);
+
+  useEffect(() => {
+    if (notification.state === State.SUCCESS2) {
+      notifications.confirmed({ id: "useUpLoginPassword", state: State.STANDBY });
+      router.push('/TodoList');
+    }
+  }, [notification.state]);
 
   const schema = getValidationSchema();
   const {
@@ -40,9 +46,10 @@ export const useUpLoginPassword = () => {
     handleSubmit,
     formState: { errors },
   } = useForm<UpdatePassword>({
+    // @ts-ignore
     resolver: yupResolver(schema),
   });
-  
+
   const router = useRouter();
 
   const onSubmit = async (formData: UpdatePassword) => {
@@ -50,9 +57,6 @@ export const useUpLoginPassword = () => {
       const accessToken = Cookies.get("accessToken");
       const refreshToken = Cookies.get("refreshToken");
       await updatePassword(accessToken, refreshToken, formData);
-      if (notification.state === State.SUCCESS) {
-        router.push("/TodoList");
-      }
     } catch (e) {
       console.log(e);
     }

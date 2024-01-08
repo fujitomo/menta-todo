@@ -6,10 +6,11 @@ import { useCallback } from 'react';
 import { useNotifications } from '@/hooks/useNotifications';
 import { AxiosResponse, axiosService } from '@/utils/axiosService';
 import Cookies from "js-cookie";
-import { State, TodoCard } from '@/recoilAtoms/recoilState';
+import { State, TodoCard, notificationsState } from '@/recoilAtoms/recoilState';
 import { SearchConditions, TodoDetail } from '@/types/todos';
 import { useRecoilDataSync } from './useRecoilDataSync';
 import { downloadAllAttachments, downloadAttachment, formatDate } from '@/utils/utils';
+import { useRecoilState, useRecoilValue } from 'recoil';
 
 // type APIRequest<T = any> = {
 //     method: Method;
@@ -25,6 +26,8 @@ export function useAPI() {
     const {
         setTodoCardList,
     } = useRecoilDataSync();
+
+    const [notification] = useRecoilState(notificationsState);
 
     // ユーザーを作成する処理
     const createUser = useCallback(async (user: User) => {
@@ -43,13 +46,17 @@ export function useAPI() {
 
             switch (res.statusCode) {
                 case 200:
+                    console.log("createUser")
+
                     const payload = res.payload as { accesstoken: string };
-                    console.log("r", payload.accesstoken);
                     Cookies.set('accessToken', payload.accesstoken);
                     notifications.confirmed({ id: id, state: State.SUCCESS });
                     break;
                 case 400:
                     notifications.rejected({ id: id, state: State.ERROR, message: "登録値が不正です。" });
+                    break;
+                case 401:
+                    notifications.rejected({ id: id, state: State.ERROR, message: "ワンタイムパスワードの1日あたりの生成回数上限に達しています。" });
                     break;
                 case 409:
                     notifications.rejected({ id: id, state: State.ERROR, message: "既に登録されています。" });
@@ -97,11 +104,15 @@ export function useAPI() {
 
             switch (res.statusCode) {
                 case 200:
+                    console.log("updateEmail")
                     updateTokenFromResponse(res);
                     notifications.confirmed({ id: id, state: State.SUCCESS });
                     break;
                 case 400:
                     notifications.rejected({ id: id, state: State.ERROR, message: "無効なメールアドレスです。" });
+                    break;
+                case 401:
+                    notifications.rejected({ id: id, state: State.ERROR, message: "ワンタイムパスワードの1日あたりの生成回数上限に達しています。" });
                     break;
                 case 404:
                     notifications.rejected({
@@ -146,6 +157,7 @@ export function useAPI() {
 
                 switch (res.statusCode) {
                     case 200:
+                        console.log("emailAuthentication")
                         const payload = res.payload as { accesstoken: string; refreshtoken: string };
                         Cookies.set('accessToken', payload.accesstoken);
                         Cookies.set('refreshToken', payload.refreshtoken);
@@ -198,6 +210,8 @@ export function useAPI() {
 
                 switch (res.statusCode) {
                     case 200:
+                        console.log("updateEmailAuthentication")
+
                         updateTokenFromResponse(res);
                         notifications.confirmed({ id: id, state: State.SUCCESS2 });
                         break;
@@ -239,6 +253,7 @@ export function useAPI() {
 
             switch (res.statusCode) {
                 case 200:
+                    console.log("login")
                     const payload = res.payload as { accesstoken: string; refreshtoken: string };
                     Cookies.set('accessToken', payload.accesstoken);
                     Cookies.set('refreshToken', payload.refreshtoken);
@@ -276,7 +291,6 @@ export function useAPI() {
                 if (refreshToken) {
                     headers["refreshtoken"] = refreshToken;
                 }
-                console.log("tre")
                 const res = await axiosService.get({
                     url: '/auth/get_profile',
                     headers
@@ -289,6 +303,8 @@ export function useAPI() {
 
                 switch (res.statusCode) {
                     case 200:
+                        console.log("getProfile")
+
                         updateTokenFromResponse(res);
                         if (res.payload) {
                             const payload = res.payload as { user_name: string, email: string, birthday: Date, avatar_photo: string };
@@ -304,15 +320,12 @@ export function useAPI() {
                         }
                         break;
                     case 404:
-                        notifications.rejected({ id: id, state: State.ERROR, message: 'プロフィールデータが登録されていません。' });
+                        notifications.confirmed({ id: id, state: State.STANDBY });
                         break;
                     default:
                         notifications.rejected({ id: id, state: State.ERROR, message: `${res.statusCode}：エラー` });
                         break;
                 }
-
-                notifications.confirmed({ id: id, state: State.SUCCESS });
-                return null;
             }
             catch (e: any) {
                 notifications.rejected({ id: id, state: State.ERROR, message: e.message });
@@ -364,6 +377,8 @@ export function useAPI() {
 
             switch (res.statusCode) {
                 case 200:
+                    console.log("getTodoList")
+
                     updateTokenFromResponse(res);
                     if (res.payload) {
                         const payload = res.payload as TodoCard[];
@@ -447,6 +462,7 @@ export function useAPI() {
 
             switch (res.statusCode) {
                 case 200:
+                    console.log("createTodo")
                     updateTokenFromResponse(res);
                     const payload = res.payload as { accesstoken: string };
                     Cookies.set('accessToken', payload.accesstoken);
@@ -503,6 +519,7 @@ export function useAPI() {
 
             switch (res.statusCode) {
                 case 200:
+                    console.log("createProfile")
                     updateTokenFromResponse(res);
                     if (res.payload) {
                         const payload = res.payload as { user_name: string, birthday: Date, attachment: File };
@@ -549,7 +566,6 @@ export function useAPI() {
                 "refreshtoken": refreshToken,
             };
             const formData = new FormData();
-            console.log("test", profile.attachment)
             if (profile.attachment) {
                 formData.append('file', profile.attachment);
             }
@@ -560,7 +576,6 @@ export function useAPI() {
             }));
 
             Cookies.remove('accessToken');
-            console.log(formData)
             const res = await axiosService.post({
                 url: '/auth/update_profile',
                 data: formData,
@@ -569,6 +584,7 @@ export function useAPI() {
 
             switch (res.statusCode) {
                 case 200:
+                    console.log("updateProfile")
                     updateTokenFromResponse(res);
                     notifications.confirmed({ id: id, state: State.SUCCESS });
                     break;
@@ -589,7 +605,7 @@ export function useAPI() {
         refreshToken: string | undefined,
         updatePassword: UpdatePassword
     ) => {
-        const id = 'updateProfile';
+        const id = 'updatePassword';
         try {
             notifications.open({ id: id, state: State.PROSSING });
             const headers = {
@@ -608,10 +624,10 @@ export function useAPI() {
             switch (res.statusCode) {
                 case 200:
                     updateTokenFromResponse(res);
-                    notifications.confirmed({ id: id, state: State.SUCCESS });
+                    notifications.confirmed({ id: id, state: State.SUCCESS2 });
                     break;
                 case 400:
-                    notifications.rejected({ id: id, state: State.ERROR, message: "更新前パスワードが間違っています。。" });
+                    notifications.rejected({ id: id, state: State.ERROR, message: "更新前パスワードが間違っています。" });
                     break;
                 case 404:
                     notifications.rejected({
@@ -671,6 +687,7 @@ export function useAPI() {
 
             switch (res.statusCode) {
                 case 200:
+                    console.log("updateTodo")
                     updateTokenFromResponse(res);
                     notifications.confirmed({ id: id, state: State.SUCCESS });
                     break;
@@ -716,6 +733,7 @@ export function useAPI() {
 
             switch (res.statusCode) {
                 case 200:
+                    console.log("deleteTodo")
                     updateTokenFromResponse(res);
                     notifications.confirmed({ id: id, state: State.SUCCESS });
                     break;
@@ -756,6 +774,8 @@ export function useAPI() {
 
             switch (res.statusCode) {
                 case 200:
+                    console.log("getTodoDatail")
+
                     updateTokenFromResponse(res);
                     const payload = res.payload as { accesstoken: string, todo_id: string, title: string, description: string, date_start: Date, date_end: Date, tags: string[], current_state: string, attachments: string[], color: string };
                     //添付ファイルのダウンロード
@@ -793,6 +813,7 @@ export function useAPI() {
     ) => {
         const id = 'stanbyNotification';
         try {
+            console.log("stanbyNotification")
             notifications.confirmed({ id: id, state: State.STANDBY });
         } catch (e: any) {
             notifications.rejected({ id: id, state: State.ERROR, message: e.message });

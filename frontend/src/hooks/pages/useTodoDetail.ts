@@ -77,6 +77,7 @@ export const useTodoDetail = () => {
       attachments: [],
       color: "#FFFFFF",
     },
+    // @ts-ignore
     resolver: yupResolver(schema),
   });
 

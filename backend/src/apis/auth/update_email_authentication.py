@@ -79,6 +79,7 @@ async def endpoint(
         {"$set": {
             REGISTRANT.EMAIL: user[REGISTRANT.EMAIL_UPDATE],
             REGISTRANT.ONETIME_PASSWORD: "none",
+            REGISTRANT.NUMBER_GENRATION: REGISTRANT.INIT_NUMBER_GENRATION,
             REGISTRANT.NUMBER_VERIFICATION: REGISTRANT.INIT_NUMBER_VERIFICATION,
             REGISTRANT.UPDATE_DATE: UtilFuncs.get_now_isodatetime()
         }},
