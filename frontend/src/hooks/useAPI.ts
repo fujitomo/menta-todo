@@ -48,8 +48,9 @@ export function useAPI() {
                 case 200:
                     console.log("createUser")
 
-                    const payload = res.payload as { accesstoken: string };
+                    const payload = res.payload as { accesstoken: string; refreshtoken: string };
                     Cookies.set('accessToken', payload.accesstoken);
+                    Cookies.set('refreshToken', payload.refreshtoken);
                     notifications.confirmed({ id: id, state: State.SUCCESS });
                     break;
                 case 400:
@@ -144,6 +145,8 @@ export function useAPI() {
                     Authorization: "Bearer " + accessToken,
                     "refreshtoken": refreshToken
                 };
+ 
+                console.log(headers, "headers")
 
                 const res = await axiosService.post({
                     url: '/auth/email_authentication',
@@ -151,7 +154,7 @@ export function useAPI() {
                     headers: headers
                 });
                 if (res.statusCode === undefined) {
-                    notifications.rejected({ id: id, state: State.ERROR2, message: `${errorMessagesNetwork}` });
+                    notifications.rejected({ id: id, state: State.ERROR_EMAIL_AUTENTICATION, message: `${errorMessagesNetwork}` });
                     return
                 }
 
@@ -161,20 +164,20 @@ export function useAPI() {
                         const payload = res.payload as { accesstoken: string; refreshtoken: string };
                         Cookies.set('accessToken', payload.accesstoken);
                         Cookies.set('refreshToken', payload.refreshtoken);
-                        notifications.confirmed({ id: id, state: State.SUCCESS2 });
+                        notifications.confirmed({ id: id, state: State.SUCCESS_EMAIL_AUTENTICATION });
                         break;
                     case 401:
-                        notifications.rejected({ id: id, state: State.ERROR2, message: `ワンタイムパスワードを間違えている可能性があります。\n
+                        notifications.rejected({ id: id, state: State.ERROR_EMAIL_AUTENTICATION, message: `ワンタイムパスワードを間違えている可能性があります。\n
                             または、ワンタイムパスワードの1日あたりの生成回数上限に達している可能性があります。`});
                             break;
                     case 404:
-                        notifications.rejected({ id: id, state: State.ERROR2, message: "データが登録されていません。" });
+                        notifications.rejected({ id: id, state: State.ERROR_EMAIL_AUTENTICATION, message: "データが登録されていません。" });
                         break;
                     case 409:
-                        notifications.rejected({ id: id, state: State.ERROR2, message: "既に登録されています。" });
+                        notifications.rejected({ id: id, state: State.ERROR_EMAIL_AUTENTICATION, message: "既に登録されています。" });
                         break;
                     default:
-                        notifications.rejected({ id: id, state: State.ERROR2, message: `${res.statusCode}エラー` });
+                        notifications.rejected({ id: id, state: State.ERROR_EMAIL_AUTENTICATION, message: `${res.statusCode}エラー` });
                         break;
                 }
             } catch (e: any) {
@@ -204,7 +207,7 @@ export function useAPI() {
                 });
 
                 if (res.statusCode === undefined) {
-                    notifications.rejected({ id: id, state: State.ERROR2, message: `${errorMessagesNetwork}` });
+                    notifications.rejected({ id: id, state: State.ERROR_EMAIL_AUTENTICATION, message: `${errorMessagesNetwork}` });
                     return
                 }
 
@@ -213,19 +216,19 @@ export function useAPI() {
                         console.log("updateEmailAuthentication")
 
                         updateTokenFromResponse(res);
-                        notifications.confirmed({ id: id, state: State.SUCCESS2 });
+                        notifications.confirmed({ id: id, state: State.SUCCESS_EMAIL_AUTENTICATION });
                         break;
                     case 401:
                         notifications.rejected({
-                            id: id, state: State.ERROR2, message: `ワンタイムパスワードを間違えている可能性があります。\n
+                            id: id, state: State.ERROR_EMAIL_AUTENTICATION, message: `ワンタイムパスワードを間違えている可能性があります。\n
                             または、ワンタイムパスワードの1日あたりの生成回数上限に達している可能性があります。` });
                         break;
                     case 404:
                         notifications.rejected({
-                            id: id, state: State.ERROR2, message: "登録メールアドレスが見つかりません。"});
+                            id: id, state: State.ERROR_EMAIL_AUTENTICATION, message: "登録メールアドレスが見つかりません。"});
                         break;
                     default:
-                        notifications.rejected({ id: id, state: State.ERROR2, message: `${res.statusCode}エラー` });
+                        notifications.rejected({ id: id, state: State.ERROR_EMAIL_AUTENTICATION, message: `${res.statusCode}エラー` });
                         break;
                 }
             } catch (e: any) {
@@ -405,11 +408,11 @@ export function useAPI() {
                     }
                     notifications.confirmed({ id: id, state: State.SUCCESS });
                     break;
-                // case 404:
+                case 404:
                 //     //データなし
                 //     setTodoCardList({ todoCardList: [] as TodoCard[] });
                 //     notifications.rejected({ id: id, state: State.ERROR, message: "TODOデータが存在しません" });
-                //     break;
+                     break;
                 default:
                     //TODO: 空の配列を返すのは必要？
                     setTodoCardList({ todoCardList: [] as TodoCard[] });
@@ -463,9 +466,8 @@ export function useAPI() {
             switch (res.statusCode) {
                 case 200:
                     console.log("createTodo")
+                    console.log(Cookies.get('accessToken'));
                     updateTokenFromResponse(res);
-                    const payload = res.payload as { accesstoken: string };
-                    Cookies.set('accessToken', payload.accesstoken);
                     notifications.confirmed({ id: id, state: State.SUCCESS });
                     break;
                 case 400:
@@ -565,6 +567,7 @@ export function useAPI() {
                 Authorization: "Bearer " + accessToken,
                 "refreshtoken": refreshToken,
             };
+            console.log("profile", profile)
             const formData = new FormData();
             if (profile.attachment) {
                 formData.append('file', profile.attachment);
@@ -624,7 +627,7 @@ export function useAPI() {
             switch (res.statusCode) {
                 case 200:
                     updateTokenFromResponse(res);
-                    notifications.confirmed({ id: id, state: State.SUCCESS2 });
+                    notifications.confirmed({ id: id, state: State.SUCCESS_PASSWORD });
                     break;
                 case 400:
                     notifications.rejected({ id: id, state: State.ERROR, message: "更新前パスワードが間違っています。" });
@@ -824,6 +827,7 @@ export function useAPI() {
     const updateTokenFromResponse = (res: AxiosResponse) => {
         const newToken = (res.headers as { [key: string]: string })?.["newtoken"];
         if (newToken) {
+           console.log("newToken777")
            Cookies.set('accessToken', newToken);
         }
       };

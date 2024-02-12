@@ -38,7 +38,7 @@ export const useSignUpForm = () => {
   };
 
   const isDialogOpen = () => {
-    return (notification.state === State.SUCCESS || notification.state === State.ERROR2) || (notification.state === State.SUCCESS2);
+    return (notification.state === State.SUCCESS || notification.state === State.ERROR_EMAIL_AUTENTICATION) || (notification.state === State.SUCCESS_EMAIL_AUTENTICATION);
 };
 
   return {

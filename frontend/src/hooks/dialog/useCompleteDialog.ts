@@ -14,7 +14,7 @@ export const useCompleteDialog = () => {
     }, []);
 
     const isOpenCompleteModal = () => {
-        return notification.state === State.SUCCESS2;
+        return notification.state === State.SUCCESS_EMAIL_AUTENTICATION;
     }
 
     const onSubmitCompleteClose = () => {

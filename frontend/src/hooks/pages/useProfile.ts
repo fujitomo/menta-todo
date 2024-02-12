@@ -69,12 +69,12 @@ export const useProfile = () => {
     setOpenDialog(true);
   };
 
-  useEffect(() => {
-    if (notification.state === State.SUCCESS2) {
-      router.push('/TodoList');
-    }
+  // useEffect(() => {
+  //   if (notification.state === State.SUCCESS2) {
+  //     router.push('/TodoList');
+  //   }
 
-  }, [notification.state]);
+  // }, [notification.state]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -84,6 +84,7 @@ export const useProfile = () => {
     const accessToken = Cookies.get("accessToken");
     const refreshToken = Cookies.get("refreshToken");
     fetchData().then(async (profileData) => {
+      console.log("test", profileData)
       if (!profileData) {
         setMode("登録");
         setTransitionDetail(() => ({
@@ -103,6 +104,7 @@ export const useProfile = () => {
         setBirthday(profileData?.birthday ? new Date(profileData?.birthday) : null);
         handleDateChange("birthday", profileData?.birthday ?? null);
         setTmpFile(profileData?.attachment);
+        handleFileChange("attachment", profileData?.attachment);
       }
     });
   }, []);
@@ -116,6 +118,7 @@ export const useProfile = () => {
       if (transition.TransitionDetail === Transition.CREATE) {
         await createProfile(accessToken, refreshToken, profile);
       } else {
+        console.log("test", profile)
         await updateProfile(accessToken, refreshToken, profile);
       }
     } catch (error) {

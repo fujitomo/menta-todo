@@ -34,12 +34,11 @@ export const useUpDateMailAddress = () => {
   const onSubmitUpdateEmail: SubmitHandler<User> = async () => {
     const accessToken = Cookies.get("accessToken");
     const refreshToken = Cookies.get("refreshToken");
-    console.log(accessToken)
     await updateEmail(accessToken, refreshToken, getValues().email);
   };
 
   const isDialogOpen = () => {
-    return (notification.state === State.SUCCESS || notification.state === State.ERROR2) || (notification.state === State.SUCCESS2);
+    return (notification.state === State.SUCCESS || notification.state === State.ERROR_EMAIL_AUTENTICATION) || (notification.state === State.SUCCESS_EMAIL_AUTENTICATION);
   };
 
   return {

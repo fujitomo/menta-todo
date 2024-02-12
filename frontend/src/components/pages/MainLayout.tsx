@@ -23,7 +23,7 @@ const MainLayout = ({ children }: Props) => {
       <Box component="main">
         <React.Fragment>{children}</React.Fragment>
         <MessageSnackbar
-          open={notification.state === State.ERROR || notification.state === State.ERROR2}
+          open={notification.state === State.ERROR || notification.state === State.ERROR_EMAIL_AUTENTICATION}
           autoHideDuration={notifications.closeTimer()}
           onClose={handleCloseSnackbar}
         >

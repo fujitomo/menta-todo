@@ -1,4 +1,3 @@
-import datetime
 import uuid
 from constants import env
 from botocore.signers import CloudFrontSigner
@@ -25,7 +24,7 @@ class UtilFuncs:
         return result
 
     def get_now_isodate() -> datetime.date:
-        now = datetime.datetime.utcnow()
+        now = datetime.utcnow()
         result = now.date().isoformat()
         return result
 

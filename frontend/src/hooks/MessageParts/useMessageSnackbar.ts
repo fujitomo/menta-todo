@@ -10,7 +10,7 @@ export const useMessageSnackbar = () => {
       } = useNotifications();
 
     const isOpenMessageSnackbar = () => {
-        return notification.state === State.ERROR || notification.state === State.ERROR2;
+        return notification.state === State.ERROR || notification.state === State.ERROR_EMAIL_AUTENTICATION;
     }
     const handleCloseSnackbar = () => {
         // モーダルを閉じる ※messageも渡さないとSnackbarが消えるときに空白のSnackbarが1瞬表示される

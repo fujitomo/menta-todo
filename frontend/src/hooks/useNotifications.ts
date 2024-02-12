@@ -53,7 +53,7 @@ export const useNotifications = () => {
 
     //TODO closeModalは汎用性がイマイチなので改善予定
     const closeModal = () => {
-        if (notification.state === State.ERROR2) {
+        if (notification.state === State.ERROR_EMAIL_AUTENTICATION) {
             // モーダルを閉じる ※messageも渡さないとSnackbarが消えるときに空白のSnackbarが1瞬表示される
             confirmed({ id: 'snackbar', state: State.SUCCESS, message: notification.message });
         } else {

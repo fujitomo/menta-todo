@@ -49,6 +49,7 @@ async def endpoint(
     # DBのコレクションを定義
     collection = db[COLLLECTION.REGISTRANT]
     token_info: AuthFuncs.TokenPayload = request.state.token_info
+    print("test", request_model.user_name)
 
     # プロフィール情報が登録されているかチェック
     profile = await collection.find_one(

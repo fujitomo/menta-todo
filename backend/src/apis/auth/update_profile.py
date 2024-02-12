@@ -52,6 +52,7 @@ async def endpoint(
     token_info: AuthFuncs.TokenPayload = request.state.token_info
 
     print("fileTEST", file)
+    print("test", request_model.user_name)
     result = await collection.update_one(
         {"$and": [{REGISTRANT.USER_ID: token_info.user_id},
                   {REGISTRANT.BIRTHDAY: {"$exists": True}}]},

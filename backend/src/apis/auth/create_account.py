@@ -17,6 +17,7 @@ class Request(BaseModel):
 
 class Response(BaseModel):
     accesstoken: str
+    refreshtoken: str
 
 
 router = APIRouter()
@@ -105,7 +106,8 @@ async def endpoint(request: Request,
         payload=TokenPayload(user_id=user_id,
                              type=TokenType.TMP.value,
                              exp=int(expires.timestamp())))
-    return Response(accesstoken=token)
+
+    return Response(accesstoken=token, refreshtoken=token)
 
 
 

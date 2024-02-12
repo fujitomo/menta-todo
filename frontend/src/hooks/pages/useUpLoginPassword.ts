@@ -34,7 +34,8 @@ export const useUpLoginPassword = () => {
   const [openDialog, setOpenDialog] = useState(false);
 
   useEffect(() => {
-    if (notification.state === State.SUCCESS2) {
+    notifications.confirmed({ id: "useUpLoginPassword", state: State.STANDBY });
+    if (notification.state === State.SUCCESS_PASSWORD) {
       notifications.confirmed({ id: "useUpLoginPassword", state: State.STANDBY });
       router.push('/TodoList');
     }

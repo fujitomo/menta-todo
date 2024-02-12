@@ -1,8 +1,7 @@
-
 import { loginCheckRedirect } from "@/utils/utils";
 import { Box, Button, Fab, Grid, Typography } from "@mui/material";
-import Link from 'next/link';
-import 'dayjs/locale/ja'; // 日本語のロケールをインポート
+import Link from "next/link";
+import "dayjs/locale/ja"; // 日本語のロケールをインポート
 import { GetServerSidePropsContext, GetServerSidePropsResult } from "next";
 import React from "react";
 import { useTodoList } from "@/hooks/pages/useTodoList";
@@ -14,7 +13,6 @@ import { useTodoListSearchDialog } from "@/hooks/dialog/useTodoListSearchDialog"
 import ConfirmDialog from "@/components/dialog/ConfirmDialog";
 
 export default function TodoList() {
-
   const {
     getAnchorEl,
     handleOpenPopover,
@@ -26,13 +24,11 @@ export default function TodoList() {
     onDelete,
     handleDialogOpen,
     handleUpdateLink,
-    getTodoCardList
+    getTodoCardList,
   } = useTodoList();
 
-  const {
-    handleShouldOpenSearchModal,
-    isShouldOpenSearchModal
-  } = useTodoListSearchDialog();
+  const { handleShouldOpenSearchModal, isShouldOpenSearchModal } =
+    useTodoListSearchDialog();
 
   return (
     <>
@@ -70,10 +66,15 @@ export default function TodoList() {
         <TodoCardList className="mt-1" />
       </Grid>
 
-      <TodoListSearchModal open={isShouldOpenSearchModal()} onClose={handleShouldOpenSearchModal} />
+      <TodoListSearchModal
+        open={isShouldOpenSearchModal()}
+        onClose={handleShouldOpenSearchModal}
+      />
       <SortingPopover
         anchorEl={getAnchorEl()}
-        onClose={() => { handleSortButtonClick() }}
+        onClose={() => {
+          handleSortButtonClick();
+        }}
         open={isOpenSortingPopover()}
       />
       <ConfirmDialog
@@ -92,7 +93,7 @@ export default function TodoList() {
     const todoStatesArray: TodoState[] = [];
     Object.entries(TodoState).forEach(([, value]) => {
       todoStatesArray.push(value);
-    })
+    });
 
     return (
       <Grid container spacing={4} className={className}>
@@ -111,45 +112,51 @@ export default function TodoList() {
       </Grid>
     );
   }
-
   function TodoCard({ todo }: { todo: TodoCard }) {
+    const backgroundColorClass = todo.color ? `bg-${todo.color}` : 'bg-white';
     return (
-      <Box className="text-black border p-2 mb-4 w-full" style={{
-        backgroundColor: todo.color === null ? 'white' : todo.color
-      }} >
-        <Box className="text-s mb-2"> {todo.title}：{todo.description?.length > 31 ? todo.description.slice(0, 29) + "..." : todo.description}</Box>
-        <Box className="flex justify-between items-center"> {/* この行を変更 */}
-          <Box /> {/* この行を追加 */}
-          <Box className="text-m mb-2">
-            終了日時：{todo && todo.dateEnd && todo.dateEnd.getTime() !== 0 ? todo.dateEnd.toLocaleDateString() : '未登録'}
-          </Box>
-        </Box>
+      <div
+        className={`bg-white p-4 mb-4 w-full shadow-lg rounded-lg`}
+        style={{
+          backgroundColor: todo.color === null ? 'white' : todo.color
+        }}
+      >
+        <div className="text-xl mb-4">
+          {todo.title}：
+          {todo.description?.length > 31
+            ? `${todo.description.slice(0, 29)}...`
+            : todo.description}
+        </div>
+        <div className="flex justify-between items-center mb-4 text-lg">
+          終了日時：
+          {todo && todo.dateEnd && todo.dateEnd.getTime() !== 0
+            ? todo.dateEnd.toLocaleDateString()
+            : "未登録"}
+        </div>
 
-        <Box className="flex justify-end">
+        <div className="flex justify-end space-x-2">
           <Link href="/TodoDetail">
-            <Button
-              className="mr-2"
-              variant="contained"
-              style={{ backgroundColor: '#53D748', color: 'black' }}
+            <button
+              className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
               onClick={() => handleUpdateLink(todo.todoId)}
             >
               更新
-            </Button>
+            </button>
           </Link>
-          <Button
-            className="mr-2"
-            variant="contained"
-            style={{ backgroundColor: '#DE8673', color: 'black' }}
+          <button
+            className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
             onClick={() => handleDialogOpen(todo.todoId)}
           >
             削除
-          </Button>
-        </Box>
-      </Box >
+          </button>
+        </div>
+      </div>
     );
   }
 }
 
-export async function getServerSideProps(context: GetServerSidePropsContext): Promise<GetServerSidePropsResult<{}>> {
+export async function getServerSideProps(
+  context: GetServerSidePropsContext
+): Promise<GetServerSidePropsResult<{}>> {
   return loginCheckRedirect(context);
 }

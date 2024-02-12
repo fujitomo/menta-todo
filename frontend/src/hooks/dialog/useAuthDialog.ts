@@ -36,6 +36,7 @@ export const useAuthDialog = (emailMode: EMAIL_MODE, newEmail: string) => {
     const onSubmitEmailAuthentication = async () => {
         const accessToken = Cookies.get('accessToken');
         const refreshToken = Cookies.get('refreshToken');
+
         if (emailMode === EMAIL_MODE.AUTHENTICATION) {
             await emailAuthentication(accessToken, refreshToken, getValues().onetimepassword ?? '');
             resetProfile();
@@ -62,7 +63,7 @@ export const useAuthDialog = (emailMode: EMAIL_MODE, newEmail: string) => {
     };
 
     const isOpenAuthModal = () => {
-        return notification.state === State.SUCCESS || notification.state === State.ERROR2;
+        return notification.state === State.SUCCESS || notification.state === State.ERROR_EMAIL_AUTENTICATION;
     }
 
     return {

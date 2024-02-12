@@ -13,22 +13,23 @@ export const enum State {
   STANDBY = 'STANDBY',
   PROSSING = 'PROSSING',
   SUCCESS = 'SUCCESS',
-  SUCCESS2 = 'SUCCESS2',
+  SUCCESS_EMAIL_AUTENTICATION = 'SUCCESS_EMAIL_AUTENTICATION',
+  SUCCESS_PASSWORD = 'SUCCESS_PASSWORD',
   ERROR = 'ERROR',
-  ERROR2 = 'ERROR2',
+  ERROR_EMAIL_AUTENTICATION = 'EMAIL_AUTENTICATION',
 }
 
 
 export const enum EMAIL_MODE {
     ADD = 'STANDBY',
     UPDATE = 'PROSSING',
-    AUTHENTICATION = "AUTHENTICATION",
+    AUTHENTICATION = 'AUTHENTICATION',
 }
 
 export const notificationsState = atom<Notification>({
   key: 'notificationsState',
   default: {
-    id: "",
+    id: '',
     loading: false,
     state: State.STANDBY,
     message: '',
@@ -52,10 +53,10 @@ export interface TodoCard {
 }
 
 export enum TodoState {
-  PENDING = "保留",
-  WORKING = "作業中",
-  COMPLETED = "完了",
-  WAITING = "待機中"
+  PENDING = '保留',
+  WORKING = '作業中',
+  COMPLETED = '完了',
+  WAITING = '待機中'
 }
 
 export const todoListState = atom<TodoCard[]>({
@@ -97,8 +98,8 @@ export const searchConditionsState = atom<SearchConditions>({
 });
 
 export enum  Transition {
-  CREATE = "登録",
-  UPDATE = "更新",
+  CREATE = '登録',
+  UPDATE = '更新',
 }
 
 export interface TransitionDetail {
@@ -125,9 +126,9 @@ export interface Profile {
 export const profileValues = atom<Profile>({
   key: 'profileState',
   default: {
-    userName: "",
-    email: "",
-    attachmentURL: "",
+    userName: '',
+    email: '',
+    attachmentURL: '',
   },
 });
 

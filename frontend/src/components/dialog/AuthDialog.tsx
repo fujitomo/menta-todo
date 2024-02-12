@@ -14,7 +14,7 @@ import { EMAIL_MODE } from "@/recoilAtoms/recoilState";
 
 interface AuthDialogProps {
   emailMode: EMAIL_MODE;
-  newEmail: string;
+  newEmail?: string;
 }
 
 export function AuthModal({ emailMode, newEmail }: AuthDialogProps) {
