@@ -51,8 +51,7 @@ async def endpoint(
     collection = db[COLLLECTION.REGISTRANT]
     token_info: AuthFuncs.TokenPayload = request.state.token_info
 
-    print("fileTEST", file)
-    print("test", request_model.user_name)
+    print("file", file)
     result = await collection.update_one(
         {"$and": [{REGISTRANT.USER_ID: token_info.user_id},
                   {REGISTRANT.BIRTHDAY: {"$exists": True}}]},
@@ -71,8 +70,9 @@ async def endpoint(
 
     if file:
         file_byte = await file.read()
+
         if len(file_byte) > SETTINGS.MAX_UPLOADFILE_SIZE:
-            ExceptionFuncs.raise_entity_too_large("アップロードファイルが2MBより大きいです。")
+            ExceptionFuncs.raise_entity_too_large(ERROR_MESSAGE.UPLOAD_FILE_SIZE)
 
         hs = FileManager.hash_binary_to_md5(file_byte)
         db_hs = await AuthFuncs.get_avatar_photo_hash(collection, token_info.user_id)

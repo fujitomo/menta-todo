@@ -1,0 +1,16 @@
+uvicorn
+pydantic==1.10.11
+requests
+fastapi
+python-multipart
+pyjwt
+motor
+pymongo
+Image
+boto3
+Pillow
+fastapi_jwt_auth
+boto3
+cryptography
+botocore
+mangum==0.11.0

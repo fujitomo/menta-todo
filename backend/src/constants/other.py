@@ -2,6 +2,9 @@
 
 from enum import Enum
 
+class DB_TYPE():
+    DOCUMENT_DB = "DOCUMENT_DB"
+    MONGO_DB = "MONGO_DB"
 
 class COLLLECTION():
     REGISTRANT = "registrant"
@@ -87,6 +90,8 @@ class ERROR_MESSAGE():
     ONEPASSWORD_GENERATION = "ワンタイムパスワードの1日あたの生成回数上限に達しています。"
     ONEPASSWORD_INSPECTION = "ワンタイムパスワードの1日あたの検証回数上限に達しています。"
     PASSWORD_BEFORE = "変更前パスワードが違います。"
+    UPLOAD_FILE_SIZE="アップロードファイルが2MBより大きいです。"
+    UPLOAD_FILE_TYPE = "アップロードするファイルが画像ファイルでない可能性があります。"
 
 
 class SUCCESS_MESSAGE():

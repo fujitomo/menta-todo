@@ -10,6 +10,7 @@ import boto3
 from constants.other import ERROR_MESSAGE
 from funcs.exception_funcs import ExceptionFuncs
 from PIL import Image
+from PIL import UnidentifiedImageError
 
 path = './'
 filelist = os.listdir(path)
@@ -38,14 +39,20 @@ class FileManager:
 
     @staticmethod
     def image_format(binary: bytes):
-        img = Image.open(io.BytesIO(binary))
-        fmt = img.format
-        content_type = f"image/{fmt.lower()}" if fmt else None
+        try:
+            img = Image.open(io.BytesIO(binary))
+            fmt = img.format
+            content_type = f"image/{fmt.lower()}" if fmt else None
+            if not content_type:
+                ExceptionFuncs.raise_bad_request(ERROR_MESSAGE.UPLOAD_FILE_TYPE)
 
-        if FileManager.is_image_content_type(content_type):
-            return content_type, fmt
-        else:
-            ExceptionFuncs.raise_bad_request(ERROR_MESSAGE.EXTENSION)
+            if FileManager.is_image_content_type(content_type):
+                return content_type, fmt
+            else:
+                ExceptionFuncs.raise_bad_request(ERROR_MESSAGE.EXTENSION)
+        except UnidentifiedImageError:
+                # ここでカスタムエラーを投げるか、ログに記録するなどの処理を行う
+                ExceptionFuncs.raise_bad_request(ERROR_MESSAGE.UPLOAD_FILE_TYPE)
 
     @staticmethod
     def hash_binary_to_md5(binary: bytes):
@@ -88,7 +95,7 @@ class FileManager:
 
         except Exception as e:
             print(e)
-            return None
+            raise e
 
     def delete(self, folder: str, filename: str):
         try:

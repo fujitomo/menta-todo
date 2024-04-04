@@ -4,6 +4,8 @@ from pydantic import BaseModel
 
 
 class EnvModel(BaseModel):
+    SERVER_LAMBDA: str
+    DB_TYPE: str
     JWT_SECRET_KEY: str
     MONGO_USERNAME: str
     MONGO_PASSWORD: str
@@ -25,7 +27,8 @@ class EnvModel(BaseModel):
     AWS_REGION_NAME: str
     AWS_CLOUDFRONT_KEY: str
     AWS_CLOUDFRONT_PEM: str
-    AWS_CLOUDFRONT_KEY: str
+    SSL_CERT_PATH: str
+    CLUSTER_ENDPOINT: str
 
 
 env = EnvModel(**os.environ)
