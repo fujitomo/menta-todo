@@ -5,7 +5,7 @@ from email.mime.text import MIMEText
 
 from constants import env
 
-AWSMAIL_HOST = "email-smtp.ap-northeast-1.amazonaws.com"
+AWSMAIL_HOST = env.AWSMAIL_HOST
 AWSMAIL_PORT = 587
 AWSMAIL_ID = env.SMTP_USERNAME
 AWSMAIL_PASSWORD = env.SMTP_PASSWORD

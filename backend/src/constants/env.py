@@ -29,6 +29,7 @@ class EnvModel(BaseModel):
     AWS_CLOUDFRONT_PEM: str
     SSL_CERT_PATH: str
     CLUSTER_ENDPOINT: str
+    AWSMAIL_HOST: str
 
 
 env = EnvModel(**os.environ)
