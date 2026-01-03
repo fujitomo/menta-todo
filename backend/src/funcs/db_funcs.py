@@ -1,7 +1,7 @@
 from typing import Optional
 
-from constants.other import DB_TYPE
 from constants import env
+from constants.other import DB_TYPE
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel
 
@@ -24,13 +24,14 @@ class DbFuncs:
                 port=env.MONGO_PORT,
                 username=env.MONGO_USERNAME,
                 password=env.MONGO_PASSWORD,
+                authSource="admin",  # envに設定予定
             )
         elif env.DB_TYPE == DB_TYPE.DOCUMENT_DB:
             # Amazon DocumentDBの接続情報
-            username=env.MONGO_USERNAME
-            password=env.MONGO_PASSWORD
-            cluster_endpoint=env.CLUSTER_ENDPOINT
-            port=env.MONGO_PORT
+            username = env.MONGO_USERNAME
+            password = env.MONGO_PASSWORD
+            cluster_endpoint = env.CLUSTER_ENDPOINT
+            port = env.MONGO_PORT
 
             # SSL証明書のパス
             ssl_cert_path = "/var/task/funcs/global-bundle.pem"

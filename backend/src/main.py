@@ -1,16 +1,15 @@
-
 from apis import routers
 from constants import env
-from constants.other import DB_TYPE
 from constants.endpoints import Endpoints
+from constants.other import DB_TYPE
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 from fastapi_jwt_auth import AuthJWT
 from funcs import DbFuncs
+from mangum import Mangum
 from other.middleware import AccessHandlingMiddleware
 from pydantic import BaseModel
-from mangum import Mangum
 
 app = FastAPI(
     title="menta login",
@@ -25,12 +24,12 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["newtoken"]  # クライアントに公開するヘッダー
+    expose_headers=["newtoken"],  # クライアントに公開するヘッダー
 )
 
 
 class Settings(BaseModel):
-    authjwt_secret_key: str = "secret"
+    authjwt_secret_key: str = env.JWT_SECRET_KEY
 
 
 @AuthJWT.load_config
