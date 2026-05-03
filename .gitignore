@@ -2,6 +2,7 @@
 # 機密情報・シークレット
 # ==========================================
 backend/.env.sandbox.backup
+backend/.env.sandbox.local
 backend/src/funcs/*.pem
 backend/src/funcs/*.csv
 
