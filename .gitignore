@@ -1,4 +1,27 @@
-backend/.env.sandbox
-backend/src/funcs/cryptopics-email-credentials.csv
-backend/src/funcs/menta-s3_accessKeys.csv
-backend/src/funcs/menta-s3-credentials.csv
+# ==========================================
+# 機密情報・シークレット
+# ==========================================
+backend/.env.sandbox.backup
+backend/src/funcs/*.pem
+backend/src/funcs/*.csv
+
+# ==========================================
+# Python ビルド成果物
+# ==========================================
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+.venv/
+*.egg-info/
+
+# ==========================================
+# ローカル用スクリプト・データ（リポジトリに含めない）
+# ==========================================
+backend/src/constants/training_answers.json
+backend/src/funcs/create_powerpoint.py
+
+# ==========================================
+# Node.js
+# ==========================================
+node_modules/
+backend/package-lock.json

@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   menta_login:
     container_name: menta_login

@@ -1,44 +1,55 @@
+import logging
+from contextlib import asynccontextmanager
+
 from apis import routers
 from constants import env
 from constants.endpoints import Endpoints
 from constants.other import DB_TYPE
-from fastapi import APIRouter, Depends, FastAPI, HTTPException, status
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
-from fastapi_jwt_auth import AuthJWT
+from fastapi.responses import JSONResponse
 from funcs import DbFuncs
 from mangum import Mangum
 from other.middleware import AccessHandlingMiddleware
 from pydantic import BaseModel
 
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """アプリケーションのライフサイクル管理"""
+    # 起動時
+    await DbFuncs.start_connect()
+    yield
+    # シャットダウン時
+    await DbFuncs.close_connect()
+
+
 app = FastAPI(
     title="menta login",
     description="todo app",
     version="0.0.1",
+    lifespan=lifespan,
 )
 app.include_router(routers)
 
+# CORS設定: 環境変数から許可オリジンを取得
+allowed_origins = []
+if env.ALLOWED_ORIGINS:
+    allowed_origins = [
+        origin.strip() for origin in env.ALLOWED_ORIGINS.split(",") if origin.strip()
+    ]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,  # 環境変数で制御（空リストの場合はすべて拒否）
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "refreshtoken"],
     expose_headers=["newtoken"],  # クライアントに公開するヘッダー
 )
-
-
-class Settings(BaseModel):
-    authjwt_secret_key: str = env.JWT_SECRET_KEY
-
-
-@AuthJWT.load_config
-def get_config():
-    return Settings()
-
-
-app.add_event_handler("startup", DbFuncs.start_connect)
-app.add_event_handler("shutdown", DbFuncs.close_connect)
 
 
 base_auth = "/auth"
@@ -100,6 +111,33 @@ def custom_openapi():
 app.openapi = custom_openapi
 
 app.add_middleware(AccessHandlingMiddleware)
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """グローバル例外ハンドラー: 未処理の例外をキャッチ"""
+    # HTTPExceptionは既に処理されているので、そのまま再発生
+    if isinstance(exc, HTTPException):
+        raise exc
+
+    # 本番環境では詳細なエラー情報を隠蔽
+    if env.DEBUG_MODE:
+        logger.exception("Unhandled exception occurred")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "detail": f"内部サーバーエラーが発生しました: {str(exc)}",
+            },
+        )
+    else:
+        logger.error("Unhandled exception occurred: %s", type(exc).__name__)
+        return JSONResponse(
+            status_code=500,
+            content={
+                "detail": "内部サーバーエラーが発生しました",
+            },
+        )
+
 
 if env.SERVER_LAMBDA:
     handler = Mangum(app)

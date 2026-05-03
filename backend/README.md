@@ -16,7 +16,7 @@
 
 ## 🛠 技術スタック
 
-- **言語**: Python 3.8+
+- **言語**: Python 3.9+
 - **フレームワーク**: FastAPI
 - **データベース**: MongoDB (本番環境: Amazon DocumentDB)
 - **認証**: JWT (JSON Web Tokens)
@@ -28,7 +28,7 @@
 ### 前提条件
 
 - Docker Desktop
-- Python 3.8 以上
+- Python 3.9 以上
 - AWS アカウント (メール送信、S3 使用時)
 
 ### ローカル開発環境のセットアップ
@@ -42,7 +42,37 @@ Docker を使用せずにローカルで Python を実行する場合の手順�
    cd backend
    ```
 
-2. **仮想環境の作成と有効化**
+2. **Poetry のインストール**
+
+   ```bash
+   # Windows (PowerShell)
+   (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | python -
+
+   # macOS/Linux
+   curl -sSL https://install.python-poetry.org | python3 -
+   ```
+
+   Poetry のパスを環境変数に追加してください。
+
+3. **依存関係のインストール**
+
+   ```bash
+   poetry install
+   ```
+
+4. **仮想環境の有効化**
+
+   ```bash
+   poetry shell
+   ```
+
+   または、Poetry 環境で直接コマンドを実行：
+
+   ```bash
+   poetry run uvicorn main:app --reload --host 0.0.0.0 --port 8100
+   ```
+
+   **注意**: 従来の `requirements.txt` を使用する場合：
 
    ```bash
    python -m venv .venv
@@ -54,14 +84,14 @@ Docker を使用せずにローカルで Python を実行する場合の手順�
    source .venv/bin/activate
    ```
 
-3. **依存パッケージのインストール**
+5. **依存パッケージのインストール**
 
    ```bash
    pip install --upgrade pip
    pip install -r requirements.txt
    ```
 
-4. **環境変数の設定**
+6. **環境変数の設定**
    `.env.sandbox`をコピーして環境変数を設定します（または直接環境変数をエクスポート）。
 
    ```bash
@@ -69,7 +99,7 @@ Docker を使用せずにローカルで Python を実行する場合の手順�
    # localhost:27017 でMongoDBを起動してください
    ```
 
-5. **サーバーの起動**
+7. **サーバーの起動**
    ```bash
    cd src
    uvicorn main:app --reload --host 0.0.0.0 --port 8000
@@ -131,8 +161,7 @@ backend/
 │   │   ├── db_funcs.py
 │   │   └── send_mail.py
 │   ├── other/          # ミドルウェアなど
-│   ├── main.py         # アプリケーションエントリーポイント
-│   └── app.py          # FastAPIアプリ設定
+│   └── main.py         # アプリケーションエントリーポイント
 ├── Dockerfile          # 本番用Dockerfile
 ├── Dockerfile.dev      # 開発用Dockerfile
 ├── docker-compose.yaml # 本番用Compose設定

@@ -1,7 +1,7 @@
 import os
-
 from typing import Optional
-from pydantic import BaseModel
+
+from pydantic import BaseModel, Field
 
 
 class EnvModel(BaseModel):
@@ -31,6 +31,8 @@ class EnvModel(BaseModel):
     SSL_CERT_PATH: Optional[str] = ""
     CLUSTER_ENDPOINT: Optional[str] = ""
     AWSMAIL_HOST: str
+    ALLOWED_ORIGINS: Optional[str] = ""
+    DEBUG_MODE: bool = False
 
 
 env = EnvModel(**os.environ)

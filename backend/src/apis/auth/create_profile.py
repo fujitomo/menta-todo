@@ -5,14 +5,19 @@ from urllib.parse import urlparse
 
 from constants import BasicResponses, Endpoints, Tags
 from constants.models import MultiPartModel
-from constants.other import (COLLLECTION, ERROR_MESSAGE, REGISTRANT, SETTINGS,
-                             SUCCESS_MESSAGE)
+from constants.other import (
+    COLLLECTION,
+    ERROR_MESSAGE,
+    REGISTRANT,
+    SETTINGS,
+    SUCCESS_MESSAGE,
+)
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from fastapi.security import HTTPBearer
-from fastapi_jwt_auth import AuthJWT
 from funcs import AuthFuncs, DbFuncs, ExceptionFuncs, UtilFuncs
 from funcs.upload_file import FileManager
 from funcs.util_funcs import UtilFuncs
+from motor.motor_asyncio import AsyncIOMotorDatabase
 from pydantic import BaseModel
 
 
@@ -34,17 +39,15 @@ RESPONSES = BasicResponses.set_success_model(Response)
 
 bearer_scheme = HTTPBearer()
 
-@router.post(ENDPOINT,
-             tags=TAGS,
-             responses=RESPONSES,
-             dependencies=[Depends(bearer_scheme)])
-# Authorizeはswagger用
+
+@router.post(
+    ENDPOINT, tags=TAGS, responses=RESPONSES, dependencies=[Depends(bearer_scheme)]
+)
 async def endpoint(
     request: Request,
     request_model: RequestModel = Form(...),
     attachment: Optional[UploadFile] = File(default=None),
-    db=Depends(DbFuncs.get_database),
-    Authorize: AuthJWT = Depends()
+    db: AsyncIOMotorDatabase = Depends(DbFuncs.get_database),
 ):
     # DBのコレクションを定義
     collection = db[COLLLECTION.REGISTRANT]
@@ -53,26 +56,37 @@ async def endpoint(
 
     # プロフィール情報が登録されているかチェック
     profile = await collection.find_one(
-           {"$and": [{REGISTRANT.USER_ID: token_info.user_id},
-                     {REGISTRANT.BIRTHDAY: {"$exists": True}},
-                     {REGISTRANT.DELETE_DATE: None}]}
+        {
+            "$and": [
+                {REGISTRANT.USER_ID: token_info.user_id},
+                {REGISTRANT.BIRTHDAY: {"$exists": True}},
+                {REGISTRANT.DELETE_DATE: None},
+            ]
+        }
     )
 
     if profile:
         ExceptionFuncs.raise_conflict(ERROR_MESSAGE.DUPLICATED)
 
     result = await collection.update_one(
-        {"$and": [
-            {REGISTRANT.USER_ID: token_info.user_id},
-            {REGISTRANT.DELETE_DATE: None}]},
-        {"$set": {
-            REGISTRANT.USER_NAME: request_model.user_name,
-            REGISTRANT.BIRTHDAY:  UtilFuncs.get_date_isoformat(request_model.birthday),
-            REGISTRANT.AVATAR_NAME:  request_model.avatar_name,
-            REGISTRANT.AVATAR_PHOTO: None,
-            REGISTRANT.AVATAR_PHOTO_HASH: None,
-            REGISTRANT.UPDATE_DATE: UtilFuncs.get_now_isodatetime()
-        }},
+        {
+            "$and": [
+                {REGISTRANT.USER_ID: token_info.user_id},
+                {REGISTRANT.DELETE_DATE: None},
+            ]
+        },
+        {
+            "$set": {
+                REGISTRANT.USER_NAME: request_model.user_name,
+                REGISTRANT.BIRTHDAY: UtilFuncs.get_date_isoformat(
+                    request_model.birthday
+                ),
+                REGISTRANT.AVATAR_NAME: request_model.avatar_name,
+                REGISTRANT.AVATAR_PHOTO: None,
+                REGISTRANT.AVATAR_PHOTO_HASH: None,
+                REGISTRANT.UPDATE_DATE: UtilFuncs.get_now_isodatetime(),
+            }
+        },
     )
 
     if result.matched_count == 0:
@@ -81,7 +95,9 @@ async def endpoint(
     if attachment:
         file_byte = await attachment.read()
         if len(file_byte) > SETTINGS.MAX_UPLOADFILE_SIZE:
-            ExceptionFuncs.raise_entity_too_large("アップロードファイルが2MBより大きいです。")
+            ExceptionFuncs.raise_entity_too_large(
+                "アップロードファイルが2MBより大きいです。"
+            )
 
         hs = hashlib.md5(file_byte).hexdigest()
         file_manager = FileManager()
@@ -90,21 +106,25 @@ async def endpoint(
         parsed_url = urlparse(avatar_photo)
 
         # Pathの部分だけを取得
-        path_only = parsed_url.path.lstrip('/')
-        file_manager.delete(f'{path_only}')
+        path_only = parsed_url.path.lstrip("/")
+        file_manager.delete(f"{path_only}")
         avatar_image = file_manager.upload(
-            file_byte,
-            f'{token_info.user_id}/{SETTINGS.FOLDER_AVATAR_PHOTO}'
+            file_byte, f"{token_info.user_id}/{SETTINGS.FOLDER_AVATAR_PHOTO}"
         )
         result = await collection.update_one(
-           {"$and": [
-            {REGISTRANT.USER_ID: token_info.user_id},
-            {REGISTRANT.DELETE_DATE: None}]},
-           {"$set": {
-              REGISTRANT.AVATAR_PHOTO: avatar_image,
-              REGISTRANT.AVATAR_PHOTO_HASH: hs,
-              REGISTRANT.UPDATE_DATE: UtilFuncs.get_now_isodatetime()
-           }},
+            {
+                "$and": [
+                    {REGISTRANT.USER_ID: token_info.user_id},
+                    {REGISTRANT.DELETE_DATE: None},
+                ]
+            },
+            {
+                "$set": {
+                    REGISTRANT.AVATAR_PHOTO: avatar_image,
+                    REGISTRANT.AVATAR_PHOTO_HASH: hs,
+                    REGISTRANT.UPDATE_DATE: UtilFuncs.get_now_isodatetime(),
+                }
+            },
         )
 
         if result.matched_count == 0:

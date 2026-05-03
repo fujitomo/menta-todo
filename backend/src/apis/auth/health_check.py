@@ -1,7 +1,6 @@
 from constants import BasicResponses, Endpoints, Tags
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, status
 from fastapi.security import HTTPBearer
-from fastapi_jwt_auth import AuthJWT
 from pydantic import BaseModel
 
 

@@ -1,9 +1,9 @@
 
 from constants import BasicResponses, Endpoints, Tags
 from constants.other import COLLLECTION, ERROR_MESSAGE, SUCCESS_MESSAGE, TODO
+from motor.motor_asyncio import AsyncIOMotorDatabase
 from fastapi import APIRouter, Depends, Request
 from fastapi.security import HTTPBearer
-from fastapi_jwt_auth import AuthJWT
 from funcs import AuthFuncs, DbFuncs, ExceptionFuncs, UtilFuncs
 from funcs.todo_funcs import TodoFuncs
 from pydantic import BaseModel
@@ -29,12 +29,10 @@ bearer_scheme = HTTPBearer()
                tags=TAGS,
                responses=RESPONSES,
                dependencies=[Depends(bearer_scheme)])
-# Authorizeはswagger用
 async def endpoint(
     request: Request,
     todo_id: str = Query(...),  # DELETEメソッドはリクエストボディを受け取ろうとするとミドルウェア処理で403エラーになるため、クエリパラメータで受け取る
-    db=Depends(DbFuncs.get_database),
-    Authorize: AuthJWT = Depends()
+    db: AsyncIOMotorDatabase = Depends(DbFuncs.get_database),
 ):
     # DBのコレクションを定義
     collection = db[COLLLECTION.TODO]

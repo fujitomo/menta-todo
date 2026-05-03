@@ -1,5 +1,5 @@
 import datetime
-import hashlib
+import logging
 import random
 import re
 import string
@@ -10,10 +10,17 @@ from typing import Any
 import jwt
 from constants import env
 from constants.other import ERROR_MESSAGE, REGISTRANT
+from jwt.exceptions import DecodeError
+from passlib.context import CryptContext
 from pydantic import BaseModel
 
 from .exception_funcs import ExceptionFuncs
-from jwt.exceptions import DecodeError
+
+# パスワードハッシュ用のコンテキスト
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# ロガー設定
+logger = logging.getLogger(__name__)
 
 
 class TokenType(Enum):
@@ -29,7 +36,6 @@ class TokenPayload(BaseModel):
 
 
 class AuthFuncs:
-
     @staticmethod
     def check_token(token, expected_type) -> TokenPayload:
         try:
@@ -47,52 +53,73 @@ class AuthFuncs:
         except (jwt.ExpiredSignatureError, ValueError, DecodeError):
             return None
         except Exception:
-            print("エラー:" + traceback.format_exc())
+            # 本番環境ではスタックトレースを制限
+            if env.DEBUG_MODE:
+                logger.exception("Token validation error")
+            else:
+                logger.error("Token validation failed")
             ExceptionFuncs.raise_unauthorized(ERROR_MESSAGE.TOKEN_AUTHORITY)
 
     @staticmethod
     def create_token(payload: TokenPayload) -> str:
         return jwt.encode(
-            payload.dict(),
+            payload.model_dump(),  # Pydantic v2: dict() → model_dump()
             env.JWT_SECRET_KEY,
             algorithm="HS256",
         )
 
     @staticmethod
-    def create_hash(value: str) -> str:
-        return hashlib.md5(value.encode('utf-8')).hexdigest()
+    def create_hash(password: str) -> str:
+        """パスワードをbcryptでハッシュ化"""
+        return pwd_context.hash(password)
+
+    @staticmethod
+    def verify_password(plain_password: str, hashed_password: str) -> bool:
+        """平文パスワードとハッシュ化されたパスワードを検証"""
+        return pwd_context.verify(plain_password, hashed_password)
 
     @staticmethod
     def random_name(num: int) -> str:
         randlst = [
-            random.choice(string.ascii_letters + string.digits)
-            for _ in range(num)
+            random.choice(string.ascii_letters + string.digits) for _ in range(num)
         ]
         return "".join(randlst)
 
     @staticmethod
     async def email_exists(collection: Any, email: str, is_authnticated: bool):
         return await collection.find_one(
-            {"$and": [{REGISTRANT.EMAIL: email},
-                      {REGISTRANT.IS_AUTHENTICATED: is_authnticated}]})
+            {
+                "$and": [
+                    {REGISTRANT.EMAIL: email},
+                    {REGISTRANT.IS_AUTHENTICATED: is_authnticated},
+                ]
+            }
+        )
 
     @staticmethod
     def get_access_token(user_id: str) -> str:
-        payload = TokenPayload(user_id=user_id,
-                               type=TokenType.ACCESS.value,
-                               exp=int((datetime.datetime.utcnow() + datetime.timedelta(hours=+1)).timestamp()))
+        payload = TokenPayload(
+            user_id=user_id,
+            type=TokenType.ACCESS.value,
+            exp=int(
+                (datetime.datetime.utcnow() + datetime.timedelta(hours=+1)).timestamp()
+            ),
+        )
         return AuthFuncs.create_token(payload)
 
     @staticmethod
     def get_refresh_token(user_id: str) -> str:
-        payload = TokenPayload(user_id=user_id,
-                               type=TokenType.REFRESH.value,
-                               exp=int((datetime.datetime.utcnow() + datetime.timedelta(days=+90)).timestamp()))
+        payload = TokenPayload(
+            user_id=user_id,
+            type=TokenType.REFRESH.value,
+            exp=int(
+                (datetime.datetime.utcnow() + datetime.timedelta(days=+90)).timestamp()
+            ),
+        )
         return AuthFuncs.create_token(payload)
 
     # complieすると処理が速い
-    repatter_email = re.compile(
-        r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)")
+    repatter_email = re.compile(r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)")
 
     @staticmethod
     def is_email_format(email: str):
@@ -104,15 +131,13 @@ class AuthFuncs:
 
     @staticmethod
     async def get_avatar_photo_hash(collection: Any, usrId: str) -> str:
-        profile = await collection.find_one(
-            {REGISTRANT.USER_ID: usrId})
+        profile = await collection.find_one({REGISTRANT.USER_ID: usrId})
         result = profile[REGISTRANT.AVATAR_PHOTO_HASH]
         return str(result)
 
     @staticmethod
     async def get_avatar_photo(collection: Any, usrId: str) -> str:
-        profile = await collection.find_one(
-            {REGISTRANT.USER_ID: usrId})
+        profile = await collection.find_one({REGISTRANT.USER_ID: usrId})
         result = profile[REGISTRANT.AVATAR_PHOTO]
         return str(result)
 
@@ -125,7 +150,10 @@ class AuthFuncs:
             # 処理日の4桁表示
             today_md = today.strftime("%m%d")
 
-            if int(number_genration[8:9]) + 1 > int(REGISTRANT.MAX_NUMBER_GENRATION) and today_md == number_genration[4:8]:
+            if (
+                int(number_genration[8:9]) + 1 > int(REGISTRANT.MAX_NUMBER_GENRATION)
+                and today_md == number_genration[4:8]
+            ):
                 ExceptionFuncs.raise_unauthorized(ERROR_MESSAGE.ONEPASSWORD_GENERATION)
             num = number_genration[8:9]
             result = number_genration[0:8] + str(int(num) + 1)

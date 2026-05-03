@@ -1,0 +1,454 @@
+総評
+全体評価
+設計レベル: 個人開発レベル / 商用本番運用には程遠い
+機能としては「JWT 認証 + Todo CRUD + S3/CloudFront/SES 連携」が一通り動くが、セキュリティ・保守性・トランザクション設計・テスト戦略が著しく不足しており、現状の本番投入は強く非推奨。
+Pydantic v2 / FastAPI 0.124 / passlib[bcrypt] と一部モダン化されているが、JWT 周りのライブラリと認証設計が古く危険。
+レイヤー分離はファサード（AuthFuncs DbFuncs ExceptionFuncs TodoFuncs といったクラス）止まりで、Service / Repository / Domain は事実上未分離。すべての DB アクセスが Router 内に直書き。
+良い点
+FastAPI lifespan / Pydantic v2 model_validator / get_database() を Depends で注入する形 など、新しめの API 構成自体は採用されている。
+EmailStr を使った NoSQL インジェクション対策、re.escape + sanitize_string_input での $regex エスケープなど、一部はインジェクション対策が入っている。
+passlib[bcrypt] でパスワードハッシュ化済み（旧バージョン由来の SHA でなくて済んでいる）。
+.env 管理 / Docker Compose / Lambda(Mangum) 切替 / OpenAPI 拡張など、運用シナリオを意識した構成。
+README が日本語で整理されており、開発者オンボーディングしやすい。
+特に危険な点（要即対応）
+本物の AWS SES SMTP 認証情報・個人メールアドレスが backend/.env.sandbox として Git 管理下にコミットされている（履歴にも残存）。
+JWT 認証ミドルウェアに「アクセストークン空文字なら認証スルー」の重大な抜け穴がある。
+JWT_SECRET_KEY のデフォルトが "secret" で、PyJWT 1.7.1 という 2019 年の脆弱バージョンを固定使用。
+リフレッシュトークン90日 + ローテーション/失効/ログアウト機構なし。漏洩した瞬間 90 日間悪用される。
+DocumentDB / MongoDB の認証情報・CloudFront 秘密鍵 (pk-APKAX62EPD7YEUBMFR6C.pem) がリポジトリ内に存在（または存在した形跡）。
+Critical
+ファイル	問題	理由	修正案
+backend/.env.sandbox	本物のAWS SES SMTPユーザー名/パスワード・個人実メール (fujitomo375@gmail.com) がコミット済み。git log で履歴に残存。	クレデンシャル漏洩。SES 認証情報は SMTP リレー経由でフィッシング送信に悪用される。AWS アカウント全体への横展開リスク。	①即 IAM の SMTP 認証情報を Revoke、②Git 履歴から削除（git filter-repo 等）、③.env.sandbox を .gitignore に追加（既に書かれているが既コミット分は除去必須）、④.env.sandbox.example のみ追跡。.env.sandbox は git rm --cached 後にローカル/Vault管理。
+backend/src/funcs/pk-APKAX62EPD7YEUBMFR6C.pem	CloudFront署名用の秘密鍵がプロジェクト内に置かれている（git status で ?? 表示）。	秘密鍵流出 = CloudFront 署名URL を任意発行可能。S3 / CloudFront 配下のプライベートリソースへ無制限アクセス。	即キーを Rotate、AWS Secrets Manager または SSM Parameter Store から取得。コンテナ起動時に取得、メモリ上で serialization.load_pem_private_key してキャッシュ。.gitignore に *.pem 追加。
+backend/src/other/middleware.py (24行目)	if url_path not in Endpoints.get_auth_required_endpoints() or not access_token: return await call_next(request) ― アクセストークンが空文字列だと認証必須エンドポイントに匿名アクセスできる。	Authorization: Bearer のような空 Bearer ヘッダで access_token = "" になり認証ミドルウェアをスルー。FastAPI 側 Depends(HTTPBearer()) も空 scheme を弾かない実装が混在しうる。	認証必須エンドポイントは「access_token が無い/空 → 即 401」とする。下記コード例参照。
+backend/src/other/middleware.py (33-39行目)	email_authentication のとき、token_info が None でも request.state.token_info = token_info のまま call_next に進む。	email_authentication.py 側で token_info.user_id 参照時に AttributeError → 500 エラー（情報漏洩+UX破綻）。さらに認証失敗が500で返る悪化。	token_info が None の場合は raise_unauthorized で 401 を返す。
+backend/src/funcs/auth_funcs.py (40-61行目)	check_token は payload["type"] != expected_type のとき直接 raise_unauthorized するが、middleware は「不一致なら None 返却 → リフレッシュにフォールバック」を期待。挙動矛盾。	アクセストークン期限切れ時のリフレッシュ動線が expected_type 不一致では機能しない。さらに payload["type"] 不在時 KeyError → except Exception 経由で 401（一見問題なさそうだが、ログ汚染とテスト困難）。	type 不一致は raise ではなく None を返す（あるいは独自例外）。payload.get("type") を使い欠損時は明示的に 401。
+backend/.env.sandbox (11行目) / EnvModel	JWT_SECRET_KEY="secret" がデフォルト。EnvModel でも長さ・エントロピーチェック無し。	HS256 で secret 文字列を秘密鍵にすると数秒で総当たり可能。任意ユーザに成り済ませる。	起動時に len(JWT_SECRET_KEY) >= 32 を強制。pydantic.field_validator で検証し、未設定/弱い値は起動失敗。本番は KMS / Secrets Manager。
+backend/requirements.txt / pyproject.toml	pyjwt>=1.7.1,<1.8.0 を固定。PyJWT 1.7.1 は 2019 年リリース、CVE-2022-29217 等の脆弱性あり。	アルゴリズム confusion 攻撃などに脆弱。jwt.decode のオプション必須化が無く、現状コードも audience 検証なし。	PyJWT を >=2.8.0 に上げ、jwt.decode(..., algorithms=["HS256"], options={"require": ["exp", "type"]}) にする。トークンに iss / aud を付けて検証。
+認証フロー全体	リフレッシュトークン90日、rotation / blacklist / 失効ストア無し。ログアウトAPIも存在しない。	リフレッシュトークン漏洩 → 90 日間誰でも新アクセストークン発行可能。パスワード変更しても旧 RT 有効。	①RT は DB 保存（jti） で発行・回転。②ログアウト/パスワード変更で全 RT を invalidate。③RT は短くする（7-14日）+ rotation。
+backend/src/apis/auth/update_password.py	パスワード変更しても既発行 JWT が全部生き続ける。	漏洩端末の RT が変更後も 90 日有効。	DB に tokenVersion / password_updated_at を持ち、check_token 内でレコードと突合してそれより前発行のトークンを失効させる。
+backend/src/apis/todo/get_todolist.py (109-112行目)	to_list(length=None) で MongoDB から全件メモリ展開、ページネーション/limitなし。	1ユーザに数万件入れただけでメモリ枯渇 → Lambda は OOM、ECS でも全停止。$regex 全件スキャンで CPU/IO も高負荷。	skip / limit (page_size) を必須化。sort を明示。$text インデックスや別検索基盤への移行。
+backend/src/apis/todo/get_todo.py (49-50, 61行目)	todo_data is None 検証前に todo_data[TODO.ATTACHMENTS] を参照。	TODO 不在時に 500 (TypeError)、攻撃者には「存在しないIDか・既存IDか」内部例外で識別される可能性。raise_not_found が後ろにあるが届かない。	先に if not todo_data: raise_not_found(...) を実行してから attachments = todo_data.get(TODO.ATTACHMENTS)。
+backend/src/funcs/upload_file.py (15-16行目)	モジュール import 時に path = './'; filelist = os.listdir(path) を実行。デバッグ残骸。	Lambda コールドスタート時に作業ディレクトリ走査が走る。意図不明な副作用 + 起動時間悪化。本番でディレクトリにアクセス不可だと import 失敗。	削除。
+backend/src/funcs/upload_file.py (100-124行目)	delete() メソッドが2回定義されており、後者が前者を上書き。(folder, filename) のシグネチャは死ぬ。	呼び出し元 todo_funcs.py が file_manager.delete(folder, filename) 形式で呼んでいるが、実体は1引数の方が動くため TypeError で削除失敗 → S3にゴミファイル蓄積。	delete_object(key: str) に統一。folder + filename 形式は廃止 or 別名 (delete_in_folder) に。
+backend/src/main.py (107-111, 116-139行目)	global_exception_handler 内で if isinstance(exc, HTTPException): raise exc。	exception_handler 内 raise は FastAPI に再キャッチされず、Internal Server Error プレーンテキストで返る。HTTPException は別 handler で処理されるべきで、ここに来る前提が誤り。	HTTPException 用に別 @app.exception_handler(HTTPException) を登録。Exception ハンドラは HTTPException でも RequestValidationError でも来ない事を前提に。
+backend/src/funcs/auth_funcs.py is_password_format / ERROR_MESSAGE.PASSWORD_LIMIT	len(password) >= 8 and len(password) <= 25 だが、エラーメッセージは「8文字以上、24文字以下」。仕様矛盾。さらに最大長制限自体が短すぎる（パスフレーズ不可）。	仕様書 / FE / BE 不整合。ユーザに 25 文字成功/24 文字エラー双方が起こりうる。	bcrypt は 72 byte 制限なので、最大 64〜72 char に拡張。Pydantic の Field(min_length=8, max_length=72) で型制約に統一。
+backend/src/main.py (45-52行目) CORS	allow_credentials=True + allow_origins を環境変数依存。.env未設定だと空配列で動くが、ブラウザは Access-Control-Allow-Origin ヘッダがない為404扱いだが事故起こりうる。allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"] だが、refreshtoken/newtoken という独自ヘッダで credentials を運ぶ前提が XSS 耐性ゼロ。	リフレッシュトークンを HTTP ヘッダ で運用 = JS から触れる = XSS で全滅。HttpOnly Cookie 不採用。	RT は HttpOnly + Secure + SameSite=Strict Cookie に格納。CSRF 対策に Double-Submit Token を併用。CORS は許可ホワイトリスト必須化（未設定で例外停止）。
+High
+ファイル	問題	理由	修正案
+backend/src/funcs/exception_funcs.py 全体	全 raise_xxx で print(message) を実施。	stdout に機密情報（CERTIFICATION_FAILED の頻度など）混入。CloudWatch 直流しは PII 漏洩監査でNG。logger に統一すべき。	logger.warning などに置換。本番では INFO 以上のみフラッシュ。
+backend/src/apis/auth/login.py	ログイン失敗回数制限・アカウントロックなし。bcrypt の cost 一定でブルートフォース耐性が弱い。	クレデンシャルスタッフィングで突破される。	Rate Limit (slowapi / WAF / API Gateway) を導入。N回失敗で一定時間ロック。
+backend/src/funcs/auth_funcs.py random_name	random.choice でワンタイムパスワード生成（暗号学的乱数ではない）。	random は Mersenne Twister 由来で予測可能。OTP 推測攻撃が成立する可能性。	secrets.choice(string.digits) を使う。OTP は数字 6桁 で十分（メール用途）。
+backend/src/apis/auth/email_authentication.py (43, 69行目)	user[REGISTRANT.IS_AUTHENTICATED]、user[REGISTRANT.ONETIME_PASSWORD] を user is None チェック前に参照。update_email_authentication.py も同様。	TOKEN は有効でも DB から消えていれば 500。	find_one 後に if not user: raise_unauthorized(...)。
+backend/src/apis/auth/email_authentication.py (51-67行目)	OTP 検証カウントをインクリメント先行してから OTP 検証。raise_unauthorized が後段なので、レースで誤って認証成功直前に上限到達する設計。	仕様としても、検証前にカウントを上げて DB 書込してから比較するため、N+1 リクエスト耐性は無い。	find_one_and_update でアトミックにカウント増加し、上限超なら 401。OTP 比較は hmac.compare_digest で定数時間比較。
+backend/src/apis/auth/email_authentication.py 比較全般	user[REGISTRANT.ONETIME_PASSWORD] != request_model.onetimepassword ― 通常の !=。	タイミング攻撃に対して脆弱（メール OTP では実害は小さいがベストプラクティス違反）。	hmac.compare_digest(a, b) に置換。
+backend/src/apis/auth/create_account.py (102行目)	datetime.utcnow() 使用、Python 3.12 で deprecated。+10 分という奇妙な記法 (minutes=+10)。	将来の Python 互換性問題。	datetime.now(timezone.utc) に統一。timedelta(minutes=10)。
+backend/src/apis/auth/create_account.py 全体	既存 unauthenticated アカウントで再登録すると、同 email に対して create_account を叩いて他人のパスワードを上書きできる。	unauthenticated レコードは email 一意制約で残存し、他人がその email を再登録 → ハッシュ + OTP 上書き → メール認証で乗っ取り可能（ただし元の email 所有者にメールが飛ぶので難易度はある）。仕様としても危険。	unauthenticated 再登録時はトークンの有効期限を厳守。number_genration のみ更新で OTP のみ再送、パスワードは初回登録時のみ受け付ける（既存 unauth と password 一致なら継続、不一致なら新規ユーザー扱いで作り直すか拒否）。
+backend/src/apis/auth/email_authentication.py find_one({REGISTRANT.USER_ID: token_info.user_id})	delete_date 条件抜け、is_authenticated チェック後に変更。	削除済みアカウントを再認証可能。	{"$and": [{user_id}, {delete_date: None}]} に統一。
+backend/src/apis/auth/update_profile.py (55, 70-75行目)	print("file", file) デバッグ残骸。update_one の $set で AVATAR_PHOTO=None, AVATAR_PHOTO_HASH=None をプロフィール部分更新と同時に毎回実行 → ファイル添付しないと既存アバターが消える。	データ消失バグ。	update_one を「テキスト部分」だけ更新。アバターは if file: ブロックでのみ更新する。
+backend/src/apis/auth/create_profile.py (55, 105-107行目)	print("test", request_model.user_name) デバッグ残骸。AuthFuncs.get_avatar_photo() が None を返したとき urlparse(None) で TypeError。	例外発生 → 500。プロフィール初回作成時は AVATAR_PHOTO が None なので、添付ありで初回プロフィール作成は失敗する。	if avatar_photo: ... で分岐し、None なら delete 不要。
+backend/src/apis/todo/update_todo.py (70-73行目)	update 条件に USER_ID を含めているが、その前の find_one (43-49行目) は USER_ID 条件なし。	他人の todo_id を指定すると、内部的に find_one で他人データを露呈し attachments_hash が返る。情報漏洩。	find_one 条件に TODO.USER_ID: token_info.user_id を追加。
+backend/src/apis/todo/delete_todo.py (51-56行目)	update_one の条件に USER_ID が無い（先行 count_documents のみで判定）。	TOCTOU の隙間あり。理論的には他人の todo を削除可能（極めて狭い窓だが原則違反）。	update_one 条件に USER_ID を必須化。
+backend/src/funcs/db_funcs.py (40-42行目)	DocumentDB 接続URLに username/password をURLエスケープせず埋め込み。	@ / : 等を含む強パスワードで接続失敗または設計上の混乱。資格情報事故の温床。	urllib.parse.quote_plus(username) 等でエスケープ。さらに MongoClient(host, username=..., password=...) 形式の引数指定を推奨。
+backend/src/funcs/util_funcs.py rsa_signer	リクエスト毎に PEM ファイルを再読み込み。	I/O / RSA load コストが毎リクエストで発生 → レイテンシ悪化。Lambda コールドスタート以外でも発生。	モジュールロード時に1度ロード、functools.lru_cache で private_key インスタンスをキャッシュ。
+backend/src/funcs/upload_file.py (61-76行目)	FileManager 初期化時に毎回 boto3.client 作成、IAM の Access Key/Secret を環境変数から取得して使用。	(1) Lambda 環境では IAM ロールを自動採用すべきで Access Key 直指定は禁止クラス。(2) コード内で boto3.resource も delete ごとに作成 → コネクション再生成オーバーヘッド。	クライアントはモジュールレベルで1回作成。EC2/Lambda は boto3.client("s3") のみで自動 IAM Role 採用。クレデンシャル指定はローカル開発時のみ。
+backend/src/main.py (47行目)	コメントに「空リストの場合はすべて拒否」とあるが、Starlette の CORSMiddleware で allow_origins=[] と書くと「空配列＝マッチなし」なので結果は拒否で正だが、credential あり + origin 無し で API は事実上動かない。起動時バリデーションがない。	環境変数未設定で起動 → 全 CORS 無効化に気付かず本番投入。	環境変数 ALLOWED_ORIGINS 未設定/空なら起動失敗（fail-fast）。
+backend/src/funcs/todo_funcs.py check_tododata (29-31行目)	len(attachments) > 10 だがエラーメッセージは「5つより多い」。	仕様矛盾。FE/QA バグ報告増加。	定数化 MAX_ATTACHMENTS = 10 してメッセージ生成。
+backend/src/funcs/todo_funcs.py get_attachments (101-103, 110-116行目)	except Exception: pass でエラー黙殺多数。	S3 アップロード/削除失敗を握りつぶす。DB 上の attachments_up に None 混入し後段で UnboundLocalError。	例外をログ + raise または明示的にユーザー向けエラー化。
+backend/src/funcs/todo_funcs.py is_todo_state	for state in TODO_STATE: if state == value で Enum と raw 値比較しており常に False になる可能性。さらに上位 update_todo.py では request_model.current_state.value を渡し、current_state は既に TODO_STATE に Pydantic で変換済みなのでこのチェックは無意味。	コード重複・実質ノーチェック。リファクタリング負債。	TODO_STATE(value) に try/except して ValueError 補足。あるいは Pydantic の型に任せる。
+backend/src/apis/todo/get_todolist.py (58-62行目)	if request_model.attachments_existence: ... if request_model.attachments_existence: ... else: ... 二重ネストで、内側の else は到達不能。	False を指定しても「無し」フィルタが動かない。仕様バグ。	if attachments_existence is True: ... elif attachments_existence is False: ...。
+backend/src/apis/todo/get_todolist.py (66-67, 91-105行目)	search[TODO.DATE_START] と search[TODO.DATE_END] に対する条件設定が複数フィルタで上書きされる。work_date を指定したあと create_date_start で再度書き換え。	検索結果が常に最後の条件にしか従わない。仕様バグ。	$and リストを構築して全条件を AND 結合。
+backend/src/apis/auth/login.py (37-46行目)	find_one で is_authenticated=True ＋ delete_date is None だが、未認証ユーザログイン試行時に find_one が None で verify_password まで届かない → タイミング攻撃が可能。	「メール存在 + 認証済かつパスワード正しい」と「メール存在せず」とで処理時間が異なる（前者だけ bcrypt 実行）。	既存ハッシュが見つからなくても「ダミーハッシュ」と verify_password を実行（時間揃え）。
+backend/src/funcs/db_funcs.py (16, 50行目)	グローバル db = UtilsMongoDB()、db.client は await get_database() で参照。	start_connect() 未実行時 db.client[env.MONGO_DB] で TypeError: NoneType is not subscriptable。シングルトン管理が脆弱。	DI コンテナ化、もしくは lifespan の中で app.state.db = ... に格納し Depends(get_db) で request.app.state.db を返す。
+backend/src/main.py app.openapi_schema の改変 (84-104行目)	OpenAPI を起動時に1回しか生成せず、ルート追加に追従しない。refreshtoken ヘッダだけ手動で全エンドポイントに追加。	新エンドポイント追加時、Swagger に出てこない。OpenAPI スキーマが実体とずれる。	app.openapi = lambda: custom... で都度生成、または Depends(refresh_header) を導入してパラメータとして自然に追加。
+backend/src/apis/todo/delete_todo.py (61-66行目)	DB の論理削除と S3 物理削除を別トランザクションで実行。S3 削除失敗時、DB は削除済みだが S3 にゴミ残存 → 整合性破綻。	DocumentDB ではマルチドキュメント TX が制限。S3 失敗時のリトライ機構もない。	S3 削除を非同期キュー (SQS / EventBridge) に投げる。Eventually Consistent な設計に。あるいは S3 ライフサイクルで放置（ユーザIDプレフィックスのGC）。
+backend/Dockerfile (18行目)	本番用 Dockerfile で --reload フラグ付き uvicorn 起動。	reload は inotify 監視のために CPU/IO を消費し、ワーカー1プロセスで本番性能が出ない。Lambda 用なら uvicorn 自体不要、Mangum で OK。	本番は gunicorn -k uvicorn.workers.UvicornWorker -w 4 main:app 等にする。reload は dev のみ。
+backend/Dockerfile, Dockerfile.dev	FROM python:3.9 (full image, ~1GB)。USER 指定なく root で動作。--no-root だが --without dev 等本番除外設定なし。poetry.lock が無い (poetry.lock* で許容) → 再現性ゼロ。	コンテナ脆弱性増。Poetry の --without dev 無しで dev 依存も入る。	python:3.12-slim ベース、USER appuser、poetry install --only main --no-root、poetry.lock を必ずコミット。
+backend/docker-compose.yaml	mongo-user:mongo-password をハードコード、27017:27017 で外部公開、MONGODB_LOG_DIR: /dev/null。	DB が外部から到達可能、ログ収集断、デフォルト認証情報。本番は別途 DocumentDB との関連設計のはずだが構成が混在し誤用リスク。	.env.production で MONGO_* を渡す。27017 を expose のみ・ホスト公開しない。本番用 compose は別ファイル化。
+Medium
+ファイル	問題	理由	修正案
+全 apis/**/*.py	レイヤー分離なし。Router ファイル内で 直接 motor の find_one / update_one を呼んでいる。	Service / Repository が無いため、テスト不能（DB を必ず立てないと単体テスト不可）。共通 query が散在。	services/auth_service.py, repositories/registrant_repository.py を導入。Router は HTTP I/O 変換と Service 呼出のみ。
+全 apis/**/*.py の from funcs import AuthFuncs, DbFuncs, ExceptionFuncs, UtilFuncs	必要ない依存も全部 import している（パターン化）。UtilFuncs の import が funcs.util_funcs から重複でも入っている。	再利用性ゼロ、循環 import 一歩手前、Lambda コールドスタート遅延。	必要分だけ import。from funcs.auth_service import xxx のように個別関数に。
+funcs/__init__.py	全 Funcs クラスをまとめてエクスポート、結局静的メソッドの集合体（実質 namespace）。	OOP のメリット無し。@staticmethod だらけで「神クラス」化、テストでモックも辛い。	クラス化を解除し関数 module 化、もしくは適切に DI 可能なクラス（Repository）に再編。
+constants/other.py COLLLECTION	COLLECTION の タイポ (l 3つ)。	全コードに伝播済み。リネームコスト増、新規参加者の混乱。	一括 rename。
+constants/other.py MAX_NUMBER_GENRATION (二重定義)	30, 34行目で MAX_NUMBER_GENRATION = 3 を二回定義。NUMBER_GENRATION (genrationスペル誤り)。	同名の別定数を作るバグの温床。	重複削除、リネーム (MAX_NUMBER_GENERATION)。
+constants/general.py	version = "2022.12.2" だけのファイル。実コードで未使用。	形骸化。pyproject.toml の version と二重管理。	削除し from importlib.metadata import version 等で取得。
+apis/auth/health_check.py	dependencies=[Depends(bearer_scheme)] で 認証必須。	ロードバランサ等の Health Check は匿名で叩く。これでは ALB/Lambda 監視で 401 が返る。	認証外す。
+main.py (8, 14, 17行目 周辺) from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request, status	大量の未使用 import。base_auth = "/auth" 未使用変数。router = APIRouter() 未使用。	dead code。コードレビュー負荷。	整理。
+apis/auth/login.py Response(MultiPartModel)	レスポンスに MultiPartModel を継承しており不要なバリデータ (validate_to_json) が応答パースで動く。	設計ミス。レスポンスは BaseModel で十分。	class Response(BaseModel):。
+apis/auth/get_profile.py (58-66行目)	if profile is not None and profile.get(...) の後で if not profile: raise_not_found(...)。順序逆転していて、最初のチェックですでに参照が出来てしまう（None でないと判定済みのため）。	ロジックは結果オーライだが意図が読みづらい。	先に存在チェック、その後 avatar 加工。
+apis/todo/get_todolist.py (107行目)	delete_date フィルタを末尾に追加 (search[TODO.DELETE_DATE] = {"$eq": None})。	検索条件としては OK だが、index でカバーされにくい。	partial index を delete_date: null で作成し、複合 index (user_id, delete_date) を貼る。
+apis/todo/get_todo.py (44行目)	find_one({TODO.DELETE_DATE: {"$eq": None}}) の $eq 冗長。MongoDB では {field: None} で同じ。	ノイズ。	{TODO.DELETE_DATE: None}。
+funcs/util_funcs.py get_now_isodate	@staticmethod 抜け。インスタンス経由でしか呼べない or cls 引数前提でクラッシュ。	UtilFuncs.get_now_isodate() で TypeError。update_todo.py で使用。	@staticmethod を付与、戻り値型 str。
+funcs/util_funcs.py (40, 42行目)	create_signed_url の expire_date が3分。	プロフィール画像取得直後に画像が読めなくなる UX 不良。	用途別に5〜30分。再取得 API も用意。
+funcs/util_funcs.py rsa_signer SHA1	CloudFront 署名 RSA-SHA1 はベストプラクティスとしては OK だがアプリ用途に限定すべき。	OK。	変更不要。
+funcs/upload_file.py imghdr import	imghdr は Python 3.13 で削除済。	将来非互換。	Pillow の Image.open のみで判定。
+apis/auth/create_account.py (114行目)	Response(accesstoken=token, refreshtoken=token) で同じ token 値を返す。	クライアントが access/refresh の取り違えで挙動破綻。フロー混乱。	TMP token として明示する dedicated レスポンス (tmp_token) を作る。
+apis/auth/create_account.py (66-79行目)	update_one の条件に is_authenticated=False 等が無い。認証済ユーザーのレコードもパスワード上書きが起こりうる (タイミング次第で email_exists が True/False を返す前後遷移)。	レース条件で認証済ユーザーのパスワードを書き換えられる可能性。	条件に is_authenticated: False を追加。
+apis/todo/get_todolist.py (60-62行目)	request_model.attachments_existence が False のとき内側 if-else が到達不能（既述）。さらに「タグ無し検索」「添付有り検索」両方とも index に乗りにくい attachments.0 tags.0 形式。	パフォーマンス悪化、検索仕様非自明。	配列長フィールド (attachments_count 等) を持たせる、もしくは $expr で $size 比較。
+funcs/auth_funcs.py get_next_number_genration	number_genration[8:9] を int() に投げている。'9'+1 → 10 で str(10) を返すと文字列長が9から10になる。後段 [8:9] は1文字決め打ちなので、上限 3 のロジックが意味を失う／ハマるとレース条件で発生。	不安定。一日上限管理を文字列演算で回す設計自体が脆い。	{count, date} を別フィールドにし、$inc を使う。
+funcs/send_mail.py (14行目)	ThreadPoolExecutor(max_workers=3, thread_name_prefix="email_sender") をグローバル生成。	Lambda 環境で fork-safe ではない。シャットダウン時のクリーンアップ無し。	app.state.email_executor に持たせ lifespan 内で shutdown() を呼ぶ。
+funcs/send_mail.py 全体	SMTP 同期 → run_in_executor で疑似 async 化しているが、SES API (boto3.client('sesv2')) を使えば素直に高速・スケーラブル。	SMTP は接続コストが高くスループット低い。AWS SES なら HTTPS API が公式推奨。	boto3 ses_v2.send_email に切替。
+funcs/send_mail.py _send_mail_aws_sync (43行目)	本文の <br> を replace で除去。HTML/Plain の使い分けが雑。	文字化け・改行抜けの温床。	テンプレートを Plain と HTML 両方用意し MIMEMultipart('alternative') に正しく attach する。
+apis/auth/create_account.py 等	EmailStr 利用の一方で AuthFuncs.is_email_format() の自前正規表現も実行。	二重バリデーション、片方が曖昧（先頭 ^ のみで RFC 違反多数）。	EmailStr 一本化。
+middleware logging.basicConfig(level=logging.INFO)	モジュールレベル副作用。	他モジュールのロガー設定が後勝ち/前勝ちで予測不能。	アプリ起動時 (main.py) で1回だけ dictConfig する。
+middleware new_token.decode("utf-8")	PyJWT 1.x が bytes を返すため OK だが、PyJWT 2.x にあげると str を返すので AttributeError で全認証崩壊。	将来の依存更新で本番停止。	if isinstance(new_token, bytes): new_token = new_token.decode() か pyjwt 2.x を前提に統一。
+tests/ 一切なし	単体・E2E ともに未整備。pytest の設定もない。	リファクタ不能。リグレッション検出ゼロ。	後述の「テスト改善提案」参照。
+Low
+ファイル	問題	理由	修正案
+apis/auth/login.py Response(MultiPartModel)	命名「Response」がモジュールごとに同名で衝突しがち。	テストで複数 import 時に名前衝突。	LoginResponse のように接頭辞付与。
+apis/** 各ファイルにある bearer_scheme = HTTPBearer()	モジュールごとに重複定義。	DRY 違反。Swagger の Authorize で複数登録される。	共通 dependencies/security.py で1つだけ定義し import。
+apis/auth/email_authentication.py (5行目)	from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, Request, status 等大量未使用 import。	dead code。	flake8/ruff で linter 導入し CI 強制。
+funcs/auth_funcs.py random_name のシグネチャ num: int	命名「random_name」だがOTP生成用途で実態と乖離。	可読性。	generate_one_time_password(length: int)。
+funcs/auth_funcs.py repatter_email	スペル誤り repatter (実際は re_pattern)。	コード品質。	リネーム。
+funcs/todo_funcs.py repatter_colorcode	同上。	同上。	同上。
+apis/todo/create_todo.py (54行目)	# TODO TODOクラスからの値取得がtitle以降できない(Noneになる) という未解決 TODO。	仕様未確認。	issue に転記、原因調査して MultiPartModel の validate_to_json が Form(...) 経由で来る JSON 文字列をうまく拾えていない可能性が高い。
+apis/todo/delete_todo.py (10行目)	from fastapi import Query を最後に import。	PEP 8 違反。	isort/ruff 導入。
+funcs/upload_file.py print(e)	例外のスタックを print。	構造化ロギング無し。	logger.exception。
+funcs/create_powerpoint.py	アプリ本体と無関係なスクリプトが funcs/ 内に同居。	レイヤー混乱。	scripts/ に移動。
+apis/auth/__init__.py	router 登録が手作業。新規追加時の漏れリスク。	拡張性低。	pkgutil.iter_modules 等で動的登録、もしくは routes_registry.py。
+Dockerfile.dev 19行目	コメントアウトされた # CMD ["uvicorn", "main.app", ...]。	dead comment。	削除。
+docker-compose.dev.yaml volumes: - ../../menta-login:/menta-login	開発機固有の親ディレクトリマウント。	共有環境で動作不能。	削除 or .env.development で設定可能に。
+apis/todo/get_todo.py RequestModel	POST /todo/get_todo で取得 → REST 違反 (GET /todos/{todo_id} であるべき)。	RESTful 違反。	後述「API 設計改善」参照。
+apis/todo/get_todolist.py POST /get_todolist	検索を POST で。	同上。GET + query string が望ましい（検索条件が複雑なら POST も妥当だが命名を /search 等に）。	GET /todos?title=...&page=...。
+constants/other.py (60行目) MAX_UPLOADFILE_SIZE = 2 * 1024 * 1024	エラーメッセージはハードコードで「2MB」。	同期取れない時にバグ。	f-string でメッセージ生成。
+apis/auth/create_account.py (62行目) onePassword = AuthFuncs.random_name(6)	変数名が camelCase（Python は snake_case）。	スタイル違反。	one_time_password。
+funcs/auth_funcs.py get_avatar_photo usrId	camelCase 引数。str(result) で None も "None" 文字列化。	スタイルおよび bug-prone。	user_id: str、Optional[str] 戻り値。
+apis/auth/create_account.py 末尾の大量の空行	余計な空行。	スタイル。	削除。
+ロギング全般	logger.debug(f"...") の f-string 評価がログレベル制御前に走る。	パフォーマンス。	logger.debug("Param: %s", value)。
+改善優先順位
+1. 最優先で直すべき箇所 (1〜2スプリント以内)
+シークレット流出対応
+git filter-repo で .env.sandbox と *.pem を履歴から除去。
+漏洩した AWS SES SMTP キー・CloudFront キー・MongoDB 資格情報をすべて Rotate。
+Secrets Manager / SSM Parameter Store 化、Docker は --secret で渡す。
+AccessHandlingMiddleware の認証バイパス修正
+「access_token 空 → 認証スルー」を即修正。
+email_authentication のフォールバック経路を再設計。
+JWT ライブラリ更新と secret 強度強制
+PyJWT 2.8+、HS256 から RS256/ES256（鍵長と非対称化）、起動時に JWT_SECRET_KEY 長さ検証。
+リフレッシュトークン管理の刷新
+DB に refresh_token レコード（jti, user_id, exp, revoked, ip, ua）を保存。Rotation・ログアウト・パスワード変更時の一斉失効。
+pyjwt を含む依存更新と Dockerfile の本番化
+PyJWT 2.x、Python 3.12、gunicorn + uvicorn workers、非 root ユーザ、poetry.lock コミット必須。
+致命的バグ修正
+upload_file.py の delete() 二重定義、import 時 os.listdir 副作用、get_todo.py の None アクセス、update_profile.py のアバター消失バグ、get_todolist.py の二重ネスト/フィルタ上書き、update_todo.py の他人 todo 情報漏洩、util_funcs.get_now_isodate の @staticmethod 抜け。
+CORS 設定の起動時バリデーション＋CookieベースのRT運用 へ移行。
+2. 次に改善すべき箇所 (3〜6スプリント)
+レイヤー分離：api/ (Router) → services/ → repositories/ → domain/ → infrastructure/ へ再編。
+ページネーション・ソート・インデックス整備：get_todolist find を limit 必須に。MongoDB (user_id, delete_date, create_date) 複合 index、(email) unique partial index。
+テスト基盤導入：pytest, pytest-asyncio, httpx.AsyncClient, mongomock-motor, moto で SES/S3 モック。coverage 80% 目標。
+構造化ロギング：structlog または python-json-logger、X-Request-ID middleware。
+OPS 改善：CI (GitHub Actions / CodeBuild) で lint (ruff, mypy)、bandit, safety, trivy fs, ビルド・テスト・Docker push。
+OTP/メール送信の置換：boto3 sesv2 直叩きへ。secrets で OTP 生成。OTP 比較は hmac.compare_digest。
+ログイン Rate Limit / アカウントロック：slowapi または API Gateway の WAF Rate-based rule。
+Health Check endpoint を匿名化＋ DB ping を含める。
+3. 将来的改善候補 (中長期)
+DDD/Clean Architecture 化：エンティティと値オブジェクト、Use Case 層、ports/adapters。
+OpenAPI Schema 自動駆動：pydantic-settings + Depends でヘッダ・cookieパラメータ宣言。手書き app.openapi_schema 改変を排除。
+MongoDB→ Beanie/MongoEngine 等 ODM：型安全と Schema migration（あるいは PostgreSQL+SQLAlchemy への載せ替え検討）。
+マイクロサービス化の余地確認：認証 / Todo / メディア の3責務がすでに混在しているので将来分離可能な構成へ。
+観測性：OpenTelemetry trace/metric、CloudWatch / Grafana 連携。
+国際化 (i18n)：エラーメッセージは日本語ハードコード → コードベース定数 + Accept-Language。
+OTP / リフレッシュトークンを Redis (ElastiCache) に。number_genration などの脆弱な文字列演算は廃止。
+リファクタリング提案
+ディレクトリ構成改善案
+backend/src/
+├── main.py                       # FastAPI bootstrap 専用
+├── config/
+│   ├── __init__.py
+│   ├── settings.py               # pydantic-settings (現 constants/env.py)
+│   └── logging.py                # dictConfig
+├── api/                          # ← 旧 apis/
+│   ├── __init__.py               # router 集約
+│   ├── deps.py                   # 共通 Depends (get_current_user, get_db, security)
+│   ├── v1/
+│   │   ├── auth/
+│   │   │   ├── login.py
+│   │   │   ├── refresh.py        # 追加: トークン更新の専用エンドポイント
+│   │   │   ├── logout.py         # 追加: 失効
+│   │   │   └── ...
+│   │   └── todo/
+│   │       ├── routes.py         # 1ファイルに集約 OK
+│   │       └── schemas.py
+│   └── exception_handlers.py
+├── domain/
+│   ├── auth/
+│   │   ├── entities.py           # User, Profile
+│   │   └── value_objects.py      # Password, Email, OneTimePassword
+│   └── todo/
+│       └── entities.py
+├── services/
+│   ├── auth_service.py           # 認証ロジック
+│   ├── token_service.py          # JWT 発行/検証
+│   ├── email_service.py          # SES 送信
+│   └── todo_service.py
+├── repositories/
+│   ├── base.py
+│   ├── registrant_repository.py  # motor 抽象化
+│   └── todo_repository.py
+├── infrastructure/
+│   ├── db/
+│   │   ├── mongo.py              # AsyncIOMotorClient 管理
+│   │   └── indexes.py            # 起動時 index 作成
+│   ├── storage/
+│   │   └── s3_client.py
+│   └── security/
+│       └── cloudfront_signer.py  # PEMキャッシュ
+├── middleware/
+│   └── auth.py
+└── tests/
+    ├── unit/
+    └── e2e/
+レイヤー分離改善案 (Login の例)
+# repositories/registrant_repository.py
+class RegistrantRepository:
+    def __init__(self, db: AsyncIOMotorDatabase):
+        self._collection = db["registrant"]
+    async def find_active_by_email(self, email: str) -> Optional[dict]:
+        return await self._collection.find_one({
+            "email": email,
+            "is_authenticated": True,
+            "delete_date": None,
+        })
+# services/auth_service.py
+class AuthService:
+    def __init__(self, repo: RegistrantRepository, hasher: PasswordHasher,
+                 token_service: TokenService):
+        self._repo = repo
+        self._hasher = hasher
+        self._token_service = token_service
+    async def authenticate(self, email: str, password: str) -> TokenPair:
+        user = await self._repo.find_active_by_email(email)
+        # タイミング攻撃対策: ユーザ不在でもダミーハッシュで verify
+        hashed = user["password"] if user else DUMMY_HASH
+        if not self._hasher.verify(password, hashed) or not user:
+            raise UnauthorizedError(ErrorCode.CREDENTIALS_INVALID)
+        return await self._token_service.issue_pair(user["user_id"])
+# api/v1/auth/login.py
+@router.post("/login", response_model=LoginResponse)
+async def login(
+    payload: LoginRequest,
+    auth_service: AuthService = Depends(get_auth_service),
+):
+    pair = await auth_service.authenticate(payload.email, payload.password)
+    return LoginResponse(access_token=pair.access, refresh_token=pair.refresh)
+共通化提案
+① 認証ユーザ取得の Depends 化（middleware から脱却）
+# api/deps.py
+oauth2_scheme = HTTPBearer(auto_error=True)
+async def get_current_user(
+    creds: HTTPAuthorizationCredentials = Depends(oauth2_scheme),
+    token_service: TokenService = Depends(get_token_service),
+    repo: RegistrantRepository = Depends(get_registrant_repo),
+) -> User:
+    payload = token_service.decode(creds.credentials, expected_type=TokenType.ACCESS)
+    user = await repo.find_active_by_user_id(payload.user_id)
+    if not user:
+        raise UnauthorizedError(ErrorCode.TOKEN_EXPIRED)
+    return User.from_dict(user)
+# 使う側
+@router.get("/auth/profile")
+async def get_profile(current_user: User = Depends(get_current_user)):
+    ...
+これで middleware で request.state.token_info に詰める実装を全廃でき、テスト容易性が劇的に向上します。
+
+② エラーハンドリング統一
+# domain/errors.py
+class DomainError(Exception):
+    def __init__(self, code: ErrorCode, status_code: int = 400):
+        self.code = code
+        self.status_code = status_code
+class UnauthorizedError(DomainError):
+    def __init__(self, code: ErrorCode):
+        super().__init__(code, status_code=401)
+# api/exception_handlers.py
+@app.exception_handler(DomainError)
+async def domain_error_handler(_: Request, exc: DomainError):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"error_code": exc.code.value, "message": exc.code.message},
+    )
+ExceptionFuncs.raise_xxx(...) の print(...) 副作用を全廃できます。
+
+③ ミドルウェアの AccessHandlingMiddleware を撤廃する
+現状の middleware は「全エンドポイント＋全ミドルウェアでトークン検証」をする太いコードですが、Depends(get_current_user) で各ハンドラに注入する方式にすれば
+
+認証必要/不要をルート単位で明示 (Endpoints.get_auth_required_endpoints の手動メンテ廃止)
+OpenAPI に自動反映
+テストで簡単に override 可能
+になります。
+
+型改善提案
+# auth_funcs.py 改修例
+from datetime import datetime, timedelta, timezone
+class TokenPayload(BaseModel):
+    user_id: UUID
+    type: TokenType  # Enum をそのまま使う
+    exp: datetime
+    iat: datetime
+    jti: UUID
+    iss: str = "menta-login-api"
+class TokenService:
+    def __init__(self, secret: SecretStr, algorithm: str = "RS256"):
+        self._secret = secret
+        self._algorithm = algorithm
+    def issue_access(self, user_id: UUID) -> Token:
+        now = datetime.now(timezone.utc)
+        payload = TokenPayload(
+            user_id=user_id,
+            type=TokenType.ACCESS,
+            exp=now + timedelta(minutes=15),
+            iat=now,
+            jti=uuid4(),
+        )
+        encoded = jwt.encode(
+            payload.model_dump(mode="json"),
+            self._secret.get_secret_value(),
+            algorithm=self._algorithm,
+        )
+        return Token(value=encoded, expires_at=payload.exp)
+ポイント：
+
+SecretStr で print(env) などでも秘密が漏れない
+datetime を ISO 形式で扱い model_dump(mode="json") で安全にシリアライズ
+jti で後段のブラックリスト/ローテーション可能化
+RS256 で漏洩耐性向上
+テスト改善提案
+構成
+backend/src/tests/
+├── conftest.py                   # FastAPI app + httpx.AsyncClient + mongo-mock fixture
+├── unit/
+│   ├── services/
+│   │   ├── test_auth_service.py
+│   │   ├── test_token_service.py
+│   │   └── test_todo_service.py
+│   └── domain/
+│       └── test_password_value.py
+├── integration/
+│   ├── test_repositories_mongo.py   # 実 mongoDB (testcontainers) で
+│   └── test_email_via_moto.py
+└── e2e/
+    ├── test_auth_flow.py        # サインアップ→OTP→ログイン→更新→削除
+    └── test_todo_crud.py
+conftest.py 例
+import pytest
+import pytest_asyncio
+from httpx import AsyncClient
+from mongomock_motor import AsyncMongoMockClient
+@pytest_asyncio.fixture
+async def db():
+    client = AsyncMongoMockClient()
+    yield client["menta_login_test"]
+    client.close()
+@pytest_asyncio.fixture
+async def client(db, monkeypatch):
+    from main import app
+    from api.deps import get_db, get_current_user
+    app.dependency_overrides[get_db] = lambda: db
+    app.dependency_overrides[get_current_user] = lambda: User(user_id="test-user")
+    async with AsyncClient(app=app, base_url="http://test") as c:
+        yield c
+    app.dependency_overrides.clear()
+推奨テスト最低ライン
+Auth: 各失敗系（不正メール / 不正パスワード / OTP 上限超過 / 削除済アカウント / 期限切れトークン / 不正 type / RT ローテーション）
+Todo: 他人 todo の CRUD 拒否、ページネーション境界、current_state enum 不正値
+Middleware: 空 Bearer / 不正 Bearer / 期限切れ Access + 有効 RT
+Email Service: moto で SES、送信失敗時のリトライ
+S3 Upload: moto、サイズ超過、画像偽装ファイル
+CI 例 (GitHub Actions スケルトン)
+name: backend-ci
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      mongo:
+        image: mongo:6
+        ports: ["27017:27017"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install poetry
+      - run: poetry install --with dev
+      - run: poetry run ruff check .
+      - run: poetry run mypy src
+      - run: poetry run bandit -r src
+      - run: poetry run pytest --cov=src --cov-fail-under=80
+補足: 認証ミドルウェア修正の最小コード例
+現状の問題箇所と対応する修正例を示します。
+
+
+app.py
+Lines 5-7
+# DEPRECATED: This file is deprecated. Please use main.py instead.
+# This file is scheduled for deletion.
+backend/src/app.py は削除予定ファイルなので即削除推奨。
+
+
+middleware.py
+Lines 22-39
+        # not access_tokenは恐らくOPTIONSリクエストで1回呼ばれるため、ここで処理を抜ける（詳細は要調査）
+        if url_path not in Endpoints.get_auth_required_endpoints() or not access_token:
+            return await call_next(request)
+        access_token = access_token.replace(BEARER_PREFIX, "")
+修正案（middleware を最小化、認証は Depends に寄せる前提のつなぎ）：
+
+class AccessHandlingMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        url_path = request.url.path
+        method = request.method
+        if method == "OPTIONS" or url_path not in Endpoints.get_auth_required_endpoints():
+            return await call_next(request)
+        access_token = request.headers.get("authorization", "").removeprefix("Bearer ").strip()
+        refresh_token = (request.headers.get("refreshtoken") or "").strip()
+        if not access_token:
+            return _unauthorized_response(ERROR_MESSAGE.TOKEN_EXPIRED)
+        if url_path == Endpoints.Auth.email_authentication:
+            token_info = AuthFuncs.check_token(access_token, TokenType.TMP.value) \
+                or AuthFuncs.check_token(refresh_token, TokenType.TMP.value)
+            if not token_info:
+                return _unauthorized_response(ERROR_MESSAGE.TOKEN_EXPIRED)
+            request.state.token_info = token_info
+            return await call_next(request)
+        token_info = AuthFuncs.check_token(access_token, TokenType.ACCESS.value)
+        new_token = None
+        if not token_info:
+            if not refresh_token:
+                return _unauthorized_response(ERROR_MESSAGE.TOKEN_EXPIRED)
+            token_info = AuthFuncs.check_token(refresh_token, TokenType.REFRESH.value)
+            if not token_info:
+                return _unauthorized_response(ERROR_MESSAGE.TOKEN_EXPIRED)
+            new_token = AuthFuncs.get_access_token(str(token_info.user_id))
+        request.state.token_info = token_info
+        response = await call_next(request)
+        if new_token:
+            response.headers["newtoken"] = new_token if isinstance(new_token, str) else new_token.decode()
+        return response
+def _unauthorized_response(message: str) -> JSONResponse:
+    return JSONResponse(status_code=401, content={"detail": message})
+加えて AuthFuncs.check_token を「type 不一致は raise しない」設計に修正：
+
+@staticmethod
+def check_token(token: Optional[str], expected_type: str) -> Optional[TokenPayload]:
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(
+            token, str(env.JWT_SECRET_KEY), algorithms=["HS256"],
+            options={"require": ["exp", "type", "user_id"]},
+        )
+    except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, jwt.DecodeError, ValueError):
+        return None
+    if payload.get("type") != expected_type:
+        return None
+    return TokenPayload(**payload)
+これで email_authentication のフォールバックが動作するようになり、middleware の print も不要になります。
+
+総括
+このバックエンドは「動くプロトタイプ」としては機能していますが、現状のまま本番投入すると、(a) コミット済みクレデンシャルによる即時アカウント侵害、(b) 認証ミドルウェアのバイパス、(c) JWT/RT 設計の弱さによる長期セッションハイジャック、(d) get_todolist の OOM、(e) update_profile のデータ消失バグ が高確率で発生します。
+
+最優先で「シークレットローテーション + 認証バイパス修正 + JWT 設計刷新」、その後にレイヤー分離 + テスト導入 + CI、最後に長期的な DDD/観測性整備、という3段階で進めることを強く推奨します。
+
+必要であれば、上記の「最優先で直すべき箇所」の具体的なリファクタ PR を分割して進めるサポートも可能です。どこから着手しますか？

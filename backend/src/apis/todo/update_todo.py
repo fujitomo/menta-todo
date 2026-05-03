@@ -4,9 +4,9 @@ from constants import BasicResponses, Endpoints, Tags
 from constants.models import TodoUpdateRequestModel
 from constants.other import (COLLLECTION, ERROR_MESSAGE, SUCCESS_MESSAGE, TODO,
                              TODO_STATE)
+from motor.motor_asyncio import AsyncIOMotorDatabase
 from fastapi import APIRouter, Depends, File, Request, UploadFile
 from fastapi.security import HTTPBearer
-from fastapi_jwt_auth import AuthJWT
 from funcs import AuthFuncs, DbFuncs, ExceptionFuncs, UtilFuncs
 from funcs.todo_funcs import TodoFuncs
 from funcs.util_funcs import UtilFuncs
@@ -29,13 +29,11 @@ bearer_scheme = HTTPBearer()
              tags=TAGS,
              responses=RESPONSES,
              dependencies=[Depends(bearer_scheme)])
-# Authorizeはswagger用
 async def endpoint(
     request: Request,
     request_model: TodoUpdateRequestModel,
     attachments: Optional[List[UploadFile]] = File(default=None),
-    db=Depends(DbFuncs.get_database),
-    Authorize: AuthJWT = Depends()
+    db: AsyncIOMotorDatabase = Depends(DbFuncs.get_database),
 ):
     # DBのコレクションを定義
     collection = db[COLLLECTION.TODO]

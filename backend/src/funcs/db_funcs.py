@@ -2,7 +2,7 @@ from typing import Optional
 
 from constants import env
 from constants.other import DB_TYPE
-from motor.motor_asyncio import AsyncIOMotorClient
+from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from pydantic import BaseModel
 
 
@@ -46,5 +46,5 @@ class DbFuncs:
         db.client.close()
 
     @staticmethod
-    async def get_database() -> AsyncIOMotorClient:
+    async def get_database() -> AsyncIOMotorDatabase:
         return db.client[env.MONGO_DB]

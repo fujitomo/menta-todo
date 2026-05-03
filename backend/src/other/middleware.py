@@ -1,29 +1,32 @@
+import json
+import logging
+
+from constants import env
 from constants.endpoints import Endpoints
 from constants.other import ERROR_MESSAGE
 from fastapi import Request
 from funcs.auth_funcs import AuthFuncs, TokenType
 from funcs.exception_funcs import ExceptionFuncs
 from starlette.middleware.base import BaseHTTPMiddleware
-import logging
-import json
-
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 class AccessHandlingMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        BEARER_PREFIX = 'Bearer '
-        access_token = request.headers.get('authorization', '')
-        refresh_token = request.headers.get('refreshtoken')
+        BEARER_PREFIX = "Bearer "
+        access_token = request.headers.get("authorization", "")
+        refresh_token = request.headers.get("refreshtoken")
         url_path = request.url.path
 
         # not access_tokenは恐らくOPTIONSリクエストで1回呼ばれるため、ここで処理を抜ける（詳細は要調査）
         if url_path not in Endpoints.get_auth_required_endpoints() or not access_token:
             return await call_next(request)
 
-        access_token = access_token.replace(BEARER_PREFIX, '')
-        print("access_token", access_token)
+        access_token = access_token.replace(BEARER_PREFIX, "")
+        # セキュリティ: アクセストークンはログに出力しない
+        logger.debug("Token validation started for path: %s", url_path)
         token_info = ""
         new_token = None
 

@@ -2,17 +2,21 @@ import json
 from datetime import date, datetime
 from typing import List, Optional
 
+from pydantic import BaseModel, ConfigDict, model_validator
+
 from constants.other import TODO_STATE
-from pydantic import BaseModel
 
 
 class MultiPartModel(BaseModel):
-    @classmethod
-    def __get_validators__(cls):
-        yield cls.validate_to_json
+    """
+    MultiPartフォームデータでJSON文字列を受け取る場合のバリデーション
+    Pydantic v2対応
+    """
 
+    @model_validator(mode="before")
     @classmethod
     def validate_to_json(cls, value):
+        """JSON文字列をパースするバリデーション"""
         if isinstance(value, str):
             return cls(**json.loads(value))
         return value
@@ -27,8 +31,7 @@ class TodoRequestModel(MultiPartModel):
     color: Optional[str] = None
     current_state: Optional[TODO_STATE] = None
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class TodoListRequestModel(BaseModel):

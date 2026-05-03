@@ -2,16 +2,16 @@
 from constants import BasicResponses, Endpoints, Tags
 from constants.other import (COLLLECTION, EMAIL_MESSAGE, ERROR_MESSAGE,
                              REGISTRANT, SUCCESS_MESSAGE)
+from motor.motor_asyncio import AsyncIOMotorDatabase
 from fastapi import APIRouter, Depends, Request
 from fastapi.security import HTTPBearer
-from fastapi_jwt_auth import AuthJWT
 from funcs import AuthFuncs, DbFuncs, ExceptionFuncs, UtilFuncs, send_mail
 from funcs.util_funcs import UtilFuncs
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 
 
 class RequestModel(BaseModel):
-    email: str
+    email: EmailStr  # NoSQLインジェクション対策: 厳密なメールアドレス検証
 
 
 class Response(BaseModel):
@@ -32,12 +32,10 @@ bearer_scheme = HTTPBearer()
     responses=RESPONSES,
     dependencies=[Depends(bearer_scheme)]
 )
-# Authorizeはswagger用
 async def endpoint(
     request: Request,
     request_model: RequestModel,
-    db=Depends(DbFuncs.get_database),
-    Authorize: AuthJWT = Depends()
+    db: AsyncIOMotorDatabase = Depends(DbFuncs.get_database),
 ):
     # DBのコレクションを定義
     collection = db[COLLLECTION.REGISTRANT]
@@ -74,8 +72,9 @@ async def endpoint(
         ExceptionFuncs.raise_not_found(ERROR_MESSAGE.NOT_FOUND)
 
     # 有効期限を設定。
-    send_mail.send_mail_aws(EMAIL_MESSAGE.AWS_EMAIL_SUBJECT,
-                            email,
-                            EMAIL_MESSAGE.AWS_EMAIL_BODY.format(onePassword=onePassword)
-                            )
+    await send_mail.send_mail_aws(
+        EMAIL_MESSAGE.AWS_EMAIL_SUBJECT,
+        email,
+        EMAIL_MESSAGE.AWS_EMAIL_BODY.format(onePassword=onePassword),
+    )
     return Response(message=SUCCESS_MESSAGE.UPDATE)
