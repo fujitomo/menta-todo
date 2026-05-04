@@ -31,7 +31,6 @@ class REGISTRANT():
     MAX_NUMBER_VERIFICATION = 3
     INIT_NUMBER_GENRATION = "000000000"
     INIT_NUMBER_VERIFICATION = "000000000"
-    MAX_NUMBER_GENRATION = 3
     REFRESH_TOKEN = "refresh_token"
     DELETE_DATE = "delete_date"
 
@@ -75,7 +74,7 @@ class EMAIL_MESSAGE():
 
 class ERROR_MESSAGE():
     INVALID_MAIL_FORMAT = "無効なメールアドレスです。"
-    PASSWORD_LIMIT = "passwordは8文字以上、24文字以下で設定するようにしてください。"
+    PASSWORD_LIMIT = "passwordは8文字以上、25文字以下で設定するようにしてください。"
     DUPLICATED = "既に登録されています。"
     NOT_FOUND = "データが存在しません。"
     CREATE_FAILED = "登録処理に失敗しました。"
@@ -97,5 +96,5 @@ class ERROR_MESSAGE():
 class SUCCESS_MESSAGE():
     CREATE = "登録完了しました。"
     UPDATE = "更新完了しました。"
-    DELETE = "更新完了しました。"
+    DELETE = "削除完了しました。"
     ONETIMEPASSWORD = "ワンタイムパスワード発行に成功しました。"

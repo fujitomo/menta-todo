@@ -1,7 +1,5 @@
-import json
 import logging
 
-from constants import env
 from constants.endpoints import Endpoints
 from constants.other import ERROR_MESSAGE
 from fastapi import Request
@@ -20,19 +18,21 @@ class AccessHandlingMiddleware(BaseHTTPMiddleware):
         refresh_token = request.headers.get("refreshtoken")
         url_path = request.url.path
 
-        # not access_tokenは恐らくOPTIONSリクエストで1回呼ばれるため、ここで処理を抜ける（詳細は要調査）
-        if url_path not in Endpoints.get_auth_required_endpoints() or not access_token:
+        # 認証必須でないエンドポイントはトークン検証をスキップする
+        if url_path not in Endpoints.get_auth_required_endpoints():
             return await call_next(request)
 
+        # Authorization（Bearer）が無い場合は 401
+        if not access_token:
+            ExceptionFuncs.raise_unauthorized(ERROR_MESSAGE.TOKEN_EXPIRED)
+
         access_token = access_token.replace(BEARER_PREFIX, "")
-        # セキュリティ: アクセストークンはログに出力しない
         logger.debug("Token validation started for path: %s", url_path)
         token_info = ""
         new_token = None
 
         if url_path == Endpoints.Auth.email_authentication:
             token_info = AuthFuncs.check_token(access_token, TokenType.TMP.value)
-            # FEでアクセルトークンが取得出来ない場合があるので、リフレッシュトークンを使ってアクセストークンを取得する
             if not token_info:
                 token_info = AuthFuncs.check_token(refresh_token, TokenType.TMP.value)
             request.state.token_info = token_info
@@ -52,6 +52,8 @@ class AccessHandlingMiddleware(BaseHTTPMiddleware):
         response = await call_next(request)
 
         if new_token:
-            response.headers["newtoken"] = new_token.decode("utf-8")
+            response.headers["newtoken"] = (
+                new_token if isinstance(new_token, str) else new_token.decode("utf-8")
+            )
 
         return response
