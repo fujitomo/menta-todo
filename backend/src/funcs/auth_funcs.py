@@ -3,21 +3,28 @@ import logging
 import random
 import re
 import string
-import traceback
 from enum import Enum
 from typing import Any
 
+import bcrypt
 import jwt
 from constants import env
 from constants.other import ERROR_MESSAGE, REGISTRANT
 from jwt.exceptions import DecodeError
-from passlib.context import CryptContext
 from pydantic import BaseModel
 
 from .exception_funcs import ExceptionFuncs
 
-# パスワードハッシュ用のコンテキスト
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# bcrypt は平文を最大 72 バイトまで（passlib は bcrypt 4.1+ と非互換のため公式 bcrypt のみ使用）
+_BCRYPT_MAX_PASSWORD_BYTES = 72
+
+
+def _password_bytes_for_bcrypt(password: str) -> bytes:
+    """登録・検証で同一のバイト列を使う（72 バイト超は先頭 72 バイトに切り詰め）。"""
+    data = password.encode("utf-8")
+    if len(data) <= _BCRYPT_MAX_PASSWORD_BYTES:
+        return data
+    return data[:_BCRYPT_MAX_PASSWORD_BYTES]
 
 # ロガー設定
 logger = logging.getLogger(__name__)
@@ -70,13 +77,18 @@ class AuthFuncs:
 
     @staticmethod
     def create_hash(password: str) -> str:
-        """パスワードをbcryptでハッシュ化"""
-        return pwd_context.hash(password)
+        """パスワードをbcryptでハッシュ化（$2b$ 形式。旧 passlib 生成ハッシュも検証可能）。"""
+        raw = _password_bytes_for_bcrypt(password)
+        return bcrypt.hashpw(raw, bcrypt.gensalt(rounds=12)).decode("ascii")
 
     @staticmethod
     def verify_password(plain_password: str, hashed_password: str) -> bool:
         """平文パスワードとハッシュ化されたパスワードを検証"""
-        return pwd_context.verify(plain_password, hashed_password)
+        raw = _password_bytes_for_bcrypt(plain_password)
+        try:
+            return bcrypt.checkpw(raw, hashed_password.encode("utf-8"))
+        except ValueError:
+            return False
 
     @staticmethod
     def random_name(num: int) -> str:
@@ -127,7 +139,12 @@ class AuthFuncs:
 
     @staticmethod
     def is_password_format(password: str):
-        return len(password) >= 8 and len(password) <= 25
+        if len(password) < 8 or len(password) > 25:
+            return False
+        # bcrypt は 72 バイト超を拒否するため、UTF-8 バイト長も制限
+        if len(password.encode("utf-8")) > _BCRYPT_MAX_PASSWORD_BYTES:
+            return False
+        return True
 
     @staticmethod
     async def get_avatar_photo_hash(collection: Any, usrId: str) -> str:

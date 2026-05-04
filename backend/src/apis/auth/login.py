@@ -7,7 +7,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from pydantic import BaseModel, EmailStr
 
 
-class Request(BaseModel):
+class LoginBody(BaseModel):
     email: EmailStr  # NoSQLインジェクション対策: 厳密なメールアドレス検証
     password: str
 
@@ -30,14 +30,14 @@ RESPONSES = BasicResponses.set_success_model(Response)
     responses=RESPONSES,
 )
 async def endpoint(
-    request: Request,
+    body: LoginBody,
     db: AsyncIOMotorDatabase = Depends(DbFuncs.get_database),
 ):
     # ユーザーを取得（パスワード検証は後で行う）
     user = await db[COLLLECTION.REGISTRANT].find_one(
         {
             "$and": [
-                {REGISTRANT.EMAIL: request.email},
+                {REGISTRANT.EMAIL: body.email},
                 {REGISTRANT.IS_AUTHENTICATED: True},
                 {REGISTRANT.DELETE_DATE: None},
             ]
@@ -48,7 +48,7 @@ async def endpoint(
         ExceptionFuncs.raise_unauthorized(ERROR_MESSAGE.CERTIFICATION_FAILED)
 
     # bcryptでパスワードを検証
-    if not AuthFuncs.verify_password(request.password, user[REGISTRANT.PASSWORD]):
+    if not AuthFuncs.verify_password(body.password, user[REGISTRANT.PASSWORD]):
         ExceptionFuncs.raise_unauthorized(ERROR_MESSAGE.CERTIFICATION_FAILED)
 
     access_token = AuthFuncs.get_access_token(user[REGISTRANT.USER_ID])

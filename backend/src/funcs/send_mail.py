@@ -1,6 +1,7 @@
 import asyncio
 import email.utils
 import logging
+import re
 import smtplib
 from concurrent.futures import ThreadPoolExecutor
 from email.mime.multipart import MIMEMultipart
@@ -10,10 +11,36 @@ from constants import env
 
 logger = logging.getLogger(__name__)
 
+
+class SesEmailRejectedError(Exception):
+    """SES が 554 等でメールを拒否した（多くはサンドボックスの検証不足）。"""
+
+    pass
+
+# 「ap-northeast-1」のみ指定された誤設定を SES の SMTP FQDN に直す
+_AWS_REGION_ID = re.compile(r"^[a-z]{2}-[a-z0-9-]+-\d+$")
+
+
+def _resolve_smtp_host(host: str) -> str:
+    if not host:
+        return host
+    host = host.strip().strip('"').strip("'")
+    if "." in host:
+        return host
+    if _AWS_REGION_ID.match(host):
+        fqdn = f"email-smtp.{host}.amazonaws.com"
+        logger.warning(
+            "AWSMAIL_HOST にリージョン名のみが指定されていました。%s に変換します。",
+            fqdn,
+        )
+        return fqdn
+    return host
+
+
 # メール送信用のスレッドプール（最大3ワーカー）
 _email_executor = ThreadPoolExecutor(max_workers=3, thread_name_prefix="email_sender")
 
-AWSMAIL_HOST = env.AWSMAIL_HOST
+AWSMAIL_HOST = _resolve_smtp_host(env.AWSMAIL_HOST)
 AWSMAIL_PORT = 587
 AWSMAIL_ID = env.SMTP_USERNAME
 AWSMAIL_PASSWORD = env.SMTP_PASSWORD
@@ -138,6 +165,18 @@ async def send_mail_aws(
             body,
         )
         logger.info(f"メール送信成功: 送信元 {FROM_EMAIL} → 送信先 {to_email}")
+    except smtplib.SMTPDataError as e:
+        logger.error(f"メール送信エラー: {type(e).__name__}: {e}")
+        smtp_err = getattr(e, "smtp_error", b"") or b""
+        if isinstance(smtp_err, str):
+            smtp_err = smtp_err.encode("utf-8", errors="replace")
+        if b"not verified" in smtp_err or b"not verified" in str(e).encode("utf-8", errors="replace"):
+            raise SesEmailRejectedError(
+                "SES がメールを拒否しました（メールアドレスが検証されていません）。"
+                "サンドボックスでは送信元・送信先の両方を、SMTP と同じリージョンの SES で検証してください。"
+                " 例: ap-northeast-3 なら大阪の SES コンソールで「識別情報」に宛先メールを追加し、検証メールのリンクを開いてください。"
+            ) from e
+        raise
     except Exception as e:
         logger.error(f"メール送信エラー: {type(e).__name__}: {e}")
         raise

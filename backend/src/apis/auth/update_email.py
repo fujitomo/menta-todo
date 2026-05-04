@@ -72,9 +72,12 @@ async def endpoint(
         ExceptionFuncs.raise_not_found(ERROR_MESSAGE.NOT_FOUND)
 
     # 有効期限を設定。
-    await send_mail.send_mail_aws(
-        EMAIL_MESSAGE.AWS_EMAIL_SUBJECT,
-        email,
-        EMAIL_MESSAGE.AWS_EMAIL_BODY.format(onePassword=onePassword),
-    )
+    try:
+        await send_mail.send_mail_aws(
+            EMAIL_MESSAGE.AWS_EMAIL_SUBJECT,
+            email,
+            EMAIL_MESSAGE.AWS_EMAIL_BODY.format(onePassword=onePassword),
+        )
+    except send_mail.SesEmailRejectedError as e:
+        ExceptionFuncs.raise_bad_request(str(e))
     return Response(message=SUCCESS_MESSAGE.UPDATE)

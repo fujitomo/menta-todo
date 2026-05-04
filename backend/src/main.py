@@ -33,6 +33,18 @@ app = FastAPI(
     version="0.0.1",
     lifespan=lifespan,
 )
+
+
+@app.get("/")
+async def root():
+    """ブラウザで http://localhost:8100/ を開いたとき用（API は /docs を参照）"""
+    return {
+        "service": "menta-login-backend",
+        "docs": "/docs",
+        "health": Endpoints.General.health_check,
+    }
+
+
 app.include_router(routers)
 
 # CORS設定: 環境変数から許可オリジンを取得
@@ -115,10 +127,12 @@ app.add_middleware(AccessHandlingMiddleware)
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    """グローバル例外ハンドラー: 未処理の例外をキャッチ"""
-    # HTTPExceptionは既に処理されているので、そのまま再発生
+    """グローバル例外ハンドラー（HTTPException もここで JSON 化。ハンドラ内 raise は避ける）"""
     if isinstance(exc, HTTPException):
-        raise exc
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"detail": exc.detail},
+        )
 
     # 本番環境では詳細なエラー情報を隠蔽
     if env.DEBUG_MODE:

@@ -43,7 +43,8 @@ class DbFuncs:
 
     @staticmethod
     async def close_connect():
-        db.client.close()
+        if db.client is not None:
+            db.client.close()
 
     @staticmethod
     async def get_database() -> AsyncIOMotorDatabase:

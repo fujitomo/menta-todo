@@ -11,7 +11,7 @@ from funcs.util_funcs import UtilFuncs
 from pydantic import BaseModel, EmailStr
 
 
-class Request(BaseModel):
+class CreateAccountBody(BaseModel):
     email: EmailStr  # NoSQLインジェクション対策: 厳密なメールアドレス検証
     password: str
 
@@ -34,19 +34,19 @@ RESPONSES = BasicResponses.set_success_model(Response)
     responses=RESPONSES
 )
 async def endpoint(
-    request: Request,
+    body: CreateAccountBody,
     db: AsyncIOMotorDatabase = Depends(DbFuncs.get_database),
 ):
     # DBのコレクションを定義
     collection = db[COLLLECTION.REGISTRANT]
 
     # DBへの無駄なアクセスを防ぐため、パスワードを先にチェック
-    password = request.password
+    password = body.password
     is_password_format = AuthFuncs.is_password_format(password)
     if not is_password_format:
         ExceptionFuncs.raise_bad_request(ERROR_MESSAGE.PASSWORD_LIMIT)
 
-    email = request.email
+    email = body.email
     # emailのフォーマット確認
     is_email_format = AuthFuncs.is_email_format(email)
     if not is_email_format:
@@ -100,11 +100,14 @@ async def endpoint(
 
     # 有効期限を設定。
     expires = datetime.datetime.utcnow() + datetime.timedelta(minutes=+10)
-    await send_mail.send_mail_aws(
-        EMAIL_MESSAGE.AWS_EMAIL_SUBJECT,
-        email,
-        EMAIL_MESSAGE.AWS_EMAIL_BODY.format(onePassword=onePassword),
-    )
+    try:
+        await send_mail.send_mail_aws(
+            EMAIL_MESSAGE.AWS_EMAIL_SUBJECT,
+            email,
+            EMAIL_MESSAGE.AWS_EMAIL_BODY.format(onePassword=onePassword),
+        )
+    except send_mail.SesEmailRejectedError as e:
+        ExceptionFuncs.raise_bad_request(str(e))
 
     token = AuthFuncs.create_token(
         payload=TokenPayload(user_id=user_id,

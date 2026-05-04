@@ -1,7 +1,5 @@
 from typing import List
 
-from fastapi.openapi.utils import get_openapi
-
 
 class Endpoints:
     class General:
@@ -18,7 +16,6 @@ class Endpoints:
         update_profile = f"{base}/update_profile"
         update_email = f"{base}/update_email"
         update_password = f"{base}/update_password"
-        update_profile = f"{base}/update_profile"
         get_profile = f"{base}/get_profile"
 
     class Todo:
@@ -32,7 +29,6 @@ class Endpoints:
     @staticmethod
     def get_auth_required_endpoints() -> List[str]:
         auth_required_endpoints = [
-            Endpoints.Auth.create_account,
             Endpoints.Auth.update_email,
             Endpoints.Auth.email_authentication,
             Endpoints.Auth.update_email_authentication,
@@ -54,4 +50,3 @@ class Tags:
     general = "general"
     auth = "auth"
     todo = "todo"
-
