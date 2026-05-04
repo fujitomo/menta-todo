@@ -4,19 +4,19 @@ import io
 import os
 import re
 from typing import Optional
-from constants import env
 
 import boto3
+from constants import env
 from constants.other import ERROR_MESSAGE
-from funcs.exception_funcs import ExceptionFuncs
-from PIL import Image
-from PIL import UnidentifiedImageError
+from PIL import Image, UnidentifiedImageError
 
-path = './'
+from funcs.exception_funcs import ExceptionFuncs
+
+path = "./"
 filelist = os.listdir(path)
 
-class config:
 
+class config:
     S3_BUCKET_NAME = env.S3_BUCKET_NAME
 
     AWS_CLOUDFRONT_URL = env.AWS_CLOUDFRONT_URL
@@ -26,11 +26,10 @@ class config:
     AWS_REGION_NAME = env.AWS_REGION_NAME
 
 
-IMG_RE = re.compile(r'image/(png|jpe?g|gif|svg)')
+IMG_RE = re.compile(r"image/(png|jpe?g|gif|svg)")
 
 
 class FileManager:
-
     @staticmethod
     def is_image_content_type(content_type: Optional[str]) -> bool:
         if not content_type:
@@ -51,8 +50,8 @@ class FileManager:
             else:
                 ExceptionFuncs.raise_bad_request(ERROR_MESSAGE.EXTENSION)
         except UnidentifiedImageError:
-                # ここでカスタムエラーを投げるか、ログに記録するなどの処理を行う
-                ExceptionFuncs.raise_bad_request(ERROR_MESSAGE.UPLOAD_FILE_TYPE)
+            # ここでカスタムエラーを投げるか、ログに記録するなどの処理を行う
+            ExceptionFuncs.raise_bad_request(ERROR_MESSAGE.UPLOAD_FILE_TYPE)
 
     @staticmethod
     def hash_binary_to_md5(binary: bytes):
@@ -81,34 +80,29 @@ class FileManager:
             content_type, fmt = FileManager.image_format(binary)
             hashed_binary = FileManager.hash_binary_to_md5(binary)
 
-            server_path = f'{folder}/{hashed_binary}.{fmt}'
+            server_path = f"{folder}/{hashed_binary}.{fmt}"
             self.boto3_client_s3.upload_fileobj(
-             Fileobj=io.BytesIO(binary),
-             Bucket=self.s3_bucket_name,
-             Key=server_path,
-             ExtraArgs={
-               'ContentType': content_type
-             } if content_type else {}
+                Fileobj=io.BytesIO(binary),
+                Bucket=self.s3_bucket_name,
+                Key=server_path,
+                ExtraArgs={"ContentType": content_type} if content_type else {},
             )
-            server_path = f'{folder}/{hashed_binary}.{fmt}'
+            server_path = f"{folder}/{hashed_binary}.{fmt}"
             return f"{self.aws_cloudfront_url}/{server_path}"
 
         except Exception as e:
             print(e)
             raise e
 
-    def delete(self, folder: str, filename: str):
-        try:
-
-            file_path = f"{folder}/{filename}"
-            return FileManager.delete(file_path)
-
-        except Exception:
-            return False
+    # def delete(self, folder: str, filename: str):
+    #     try:
+    #         file_path = f"{folder}/{filename}"
+    #         return FileManager.delete(file_path)
+    #     except Exception:
+    #         return False
 
     def delete(self, fullpath: str):
         try:
-
             boto3_resorce_s3 = boto3.resource(
                 "s3",
                 aws_access_key_id=self.aws_access_key_id,

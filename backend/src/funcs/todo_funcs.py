@@ -110,7 +110,9 @@ class TodoFuncs:
                     try:
                         url = urlparse(old_attachment_list[count])
                         filename = os.path.basename(url.path)
-                        file_manager.delete(f"{user_id}/{SETTINGS.FOLDER_TODO_ATTACHMENTS}/{todo_id}", filename)
+                        file_manager.delete(
+                            f"{user_id}/{SETTINGS.FOLDER_TODO_ATTACHMENTS}/{todo_id}/{filename}"
+                        )
                     except Exception as e:
                         # エラーロギングや適切なエラー処理をここに追加
                         pass
@@ -124,7 +126,9 @@ class TodoFuncs:
                 try:
                     url = urlparse(old_attachment)
                     filename = os.path.basename(url.path)
-                    file_manager.delete(f"{user_id}/{SETTINGS.FOLDER_TODO_ATTACHMENTS}/{todo_id}", filename)
+                    file_manager.delete(
+                        f"{user_id}/{SETTINGS.FOLDER_TODO_ATTACHMENTS}/{todo_id}/{filename}"
+                    )
                 except Exception as e:
                     # エラーロギングや適切なエラー処理をここに追加
                     pass
