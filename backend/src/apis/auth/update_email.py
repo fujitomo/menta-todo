@@ -67,7 +67,9 @@ async def endpoint(
         {"$set": {
             REGISTRANT.EMAIL_UPDATE: email,
             REGISTRANT.ONETIME_PASSWORD: onePassword,
-            REGISTRANT.NUMBER_GENRATION: AuthFuncs.get_next_number_genration(user[REGISTRANT.NUMBER_GENRATION]),
+            REGISTRANT.NUMBER_GENRATION: AuthFuncs.get_next_number_genration(
+                user.get(REGISTRANT.NUMBER_GENRATION) or REGISTRANT.INIT_NUMBER_GENRATION
+            ),
             REGISTRANT.UPDATE_DATE: UtilFuncs.get_now_isodatetime()
         }},
     )
