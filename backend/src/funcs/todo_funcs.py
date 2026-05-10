@@ -39,11 +39,13 @@ class TodoFuncs:
                         "アップロードファイルに2MBより大きいものがあります。"
                     )
 
-        if todo_model:
-            if len(todo_model.title) > 500:
-                ExceptionFuncs.raise_bad_request(
-                    f"カラム「{TODO.TITLE}」の文字数が500文字より多いです。"
-                )
+        if todo_model is None:
+            return
+
+        if todo_model.title is not None and len(todo_model.title) > 500:
+            ExceptionFuncs.raise_bad_request(
+                f"カラム「{TODO.TITLE}」の文字数が500文字より多いです。"
+            )
         if todo_model.description:
             if len(todo_model.description) > 2000:
                 ExceptionFuncs.raise_bad_request(

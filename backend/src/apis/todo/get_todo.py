@@ -46,8 +46,11 @@ async def endpoint(
                       "_id": 0}
     )
 
+    if not todo_data:
+        ExceptionFuncs.raise_not_found(ERROR_MESSAGE.NOT_FOUND)
+
     processed_attachments = []
-    attachments = todo_data[TODO.ATTACHMENTS]
+    attachments = todo_data.get(TODO.ATTACHMENTS) or []
     if attachments:
         for attachment in attachments:
             if attachment:
@@ -57,8 +60,5 @@ async def endpoint(
 
 
         todo_data[TODO.ATTACHMENTS] = processed_attachments
-
-    if not todo_data:
-        ExceptionFuncs.raise_not_found(ERROR_MESSAGE.NOT_FOUND)
 
     return TodoResponsModel(**todo_data)
