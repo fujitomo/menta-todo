@@ -54,6 +54,10 @@ async def endpoint(
         ExceptionFuncs.raise_conflict(ERROR_MESSAGE.DUPLICATED)
 
     user = await collection.find_one({REGISTRANT.USER_ID: token_info.user_id})
+
+    if not user:
+        ExceptionFuncs.raise_not_found(ERROR_MESSAGE.NOT_FOUND)
+
     onePassword = AuthFuncs.random_name(6)
     result = await collection.update_one(
         {"$and": [

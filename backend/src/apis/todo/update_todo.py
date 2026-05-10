@@ -85,7 +85,7 @@ async def endpoint(
                 TODO.UPDATE_DATE: UtilFuncs.get_now_isodatetime()
             }})
 
-    if not result:
+    if result.matched_count == 0:
         ExceptionFuncs.raise_not_found(ERROR_MESSAGE.NOT_FOUND)
 
     return Response(message=(SUCCESS_MESSAGE.UPDATE))

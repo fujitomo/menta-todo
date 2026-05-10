@@ -37,6 +37,9 @@ async def endpoint(
     token_info = request.state.token_info
     user = await collection.find_one({REGISTRANT.USER_ID: token_info.user_id})
 
+    if not user:
+        ExceptionFuncs.raise_not_found(ERROR_MESSAGE.NOT_FOUND)
+
     if user[REGISTRANT.IS_AUTHENTICATED]:
         ExceptionFuncs.raise_conflict(ERROR_MESSAGE.DUPLICATED)
 

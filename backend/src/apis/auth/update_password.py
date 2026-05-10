@@ -79,7 +79,7 @@ async def endpoint(
         },
     )
 
-    if not update_password:
+    if update_password.matched_count == 0:
         ExceptionFuncs.raise_not_found(ERROR_MESSAGE.NOT_FOUND)
 
     return Response(message=SUCCESS_MESSAGE.UPDATE)
