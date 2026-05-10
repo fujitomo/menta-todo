@@ -63,27 +63,35 @@ async def endpoint(
     date_end = UtilFuncs.get_date_isoformat(request_model.date_end)
 
     completed_date = None
-    if (request_model.current_state == TODO_STATE.FOLDER_COMPLETED_ATTACHMENT and
-            old_data[TODO.CURRENT_STATE] != TODO_STATE.FOLDER_COMPLETED_ATTACHMENT):
-        completed_date = UtilFuncs.get_now_isodate()
+    if request_model.current_state is not None:
+        if (
+            request_model.current_state == TODO_STATE.FOLDER_COMPLETED_ATTACHMENT
+            and old_data[TODO.CURRENT_STATE]
+            != TODO_STATE.FOLDER_COMPLETED_ATTACHMENT
+        ):
+            completed_date = UtilFuncs.get_now_isodate()
+
+    set_payload = {
+        TODO.TITLE: request_model.title,
+        TODO.DESCRIPTION: request_model.description,
+        TODO.ATTACHMENTS: attachments_up,
+        TODO.ATTACHMENTS_HASH: new_attachments_hash,
+        TODO.DATE_START: date_start,
+        TODO.DATE_END: date_end,
+        TODO.TAGS: request_model.tags,
+        TODO.COLOR: request_model.color,
+        TODO.UPDATE_DATE: UtilFuncs.get_now_isodatetime(),
+    }
+    if request_model.current_state is not None:
+        set_payload[TODO.CURRENT_STATE] = request_model.current_state.value
+    if completed_date is not None:
+        set_payload[TODO.COMPLETED_DATE] = completed_date
 
     result = await collection.update_one(
             {"$and": [{TODO.USER_ID: token_info.user_id},
                       {TODO.TODO_ID: request_model.todo_id},
                       {TODO.DELETE_DATE: None}]},
-            {"$set": {
-                TODO.TITLE: request_model.title,
-                TODO.DESCRIPTION: request_model.description,
-                TODO.ATTACHMENTS: attachments_up,
-                TODO.ATTACHMENTS_HASH: new_attachments_hash,
-                TODO.DATE_START: date_start,
-                TODO.DATE_END: date_end,
-                TODO.TAGS: request_model.tags,
-                TODO.CURRENT_STATE: request_model.current_state.value,
-                TODO.COLOR: request_model.color,
-                TODO.COMPLETED_DATE: completed_date,
-                TODO.UPDATE_DATE: UtilFuncs.get_now_isodatetime()
-            }})
+            {"$set": set_payload})
 
     if result.matched_count == 0:
         ExceptionFuncs.raise_not_found(ERROR_MESSAGE.NOT_FOUND)
